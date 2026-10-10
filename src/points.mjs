@@ -11,7 +11,7 @@ export function pointsFor(value, hintLevel) {
 
 // Ce qui compte pour les points d'une étape, sur cette machine : { green, hintLevel, points? }.
 // Les commandes check, hint et submit passent par ces trois fonctions ; stepPoints n'est que leur pli,
-// et docs/points/exemples.json le rejoue : les exemples partagés tiennent donc le vrai calcul.
+// et points/exemples.json le rejoue : les exemples partagés tiennent donc le vrai calcul.
 export const applyCheck = (rec, green) => ({ ...rec, green });
 export const applyHint = (rec, level) => ({ ...rec, hintLevel: Math.max(rec.hintLevel ?? 0, level) });
 // Acquise à la première soumission faite pendant que l'étape est verte ; figée ensuite.

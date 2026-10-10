@@ -119,14 +119,15 @@ Toujours monter la version, même pour une retouche : une version publiée sur n
 **1. Publier**, sur `main` à jour :
 
 ```bash
-npm version 0.7.1 --no-git-tag-version
+npm version 0.7.2 --no-git-tag-version
 npm test
-git commit -am "0.7.1"
-git tag v0.7.1
-git push --follow-tags
+git commit -am "0.7.2"
+git push                      # puis attendre la CI verte de main
+git tag v0.7.2
+git push origin v0.7.2
 ```
 
-Seul un administrateur du dépôt peut poser un tag `v*`. Le workflow `Publier @othila-academy/lab` tourne dans l'environnement GitHub `npm`, réservé à ces tags et soumis à validation manuelle. Il vérifie que le tag correspond à la version de `package.json`, installe sans exécuter aucun script, rejoue les tests, vérifie que le paquet ne contient que `bin/`, `src/` (sans tests ni fixtures), `contrat/`, `points/`, `README.md`, `LICENSE` et `package.json`, puis publie avec `--provenance`. Si la version est déjà sur npmjs, il le signale et s'arrête sans erreur : on peut le relancer après une panne.
+Seul un administrateur du dépôt peut poser un tag `v*`. Le workflow `Publier @othila-academy/lab` rejoue d'abord les tests sur Node 20 et Node 24 ; la publication n'est demandée qu'ensuite, dans l'environnement GitHub `npm`, réservé à ces tags et soumis à validation manuelle. Elle vérifie que le tag correspond à la version de `package.json` et que le commit tagué est sur `main`, installe sans exécuter aucun script, vérifie que le paquet ne contient que `bin/`, `src/` (sans tests ni fixtures), `contrat/`, `points/`, `README.md`, `LICENSE` et `package.json`, puis publie avec `--provenance`. Si la version est déjà sur npmjs, il le signale et s'arrête sans erreur : on peut le relancer après une panne.
 
 **2. Vérifier**, dans n'importe quel projet qui l'installe : `npm audit signatures` contrôle la signature du registre et l'attestation de provenance.
 
@@ -145,6 +146,6 @@ Une version exacte : le lockfile garde son empreinte d'intégrité, et chaque ta
 **Réglages de sécurité** :
 
 - npmjs, paquet `@othila-academy/lab` : éditeur de confiance `othila-academy/lab-cli`, workflow `publish.yml`, environnement `npm` ; publication par jeton interdite ; double authentification exigée dans l'organisation ;
-- GitHub : environnement `npm` limité aux tags `v*`, avec validation manuelle ; tags `v*` réservés aux administrateurs ; `main` protégée (CI requise, pas de push forcé) ; workflows en lecture seule par défaut, actions épinglées par empreinte et suivies par Dependabot.
+- GitHub : environnement `npm` limité aux tags `v*`, avec validation manuelle, administrateurs compris ; tags `v*` réservés aux administrateurs ; `main` protégée (CI requise, pas de push forcé, pas de suppression), les administrateurs pouvant passer outre ; workflows en lecture seule par défaut ; seules les actions de GitHub sont autorisées, épinglées par empreinte (exigé par le dépôt) et suivies par Dependabot.
 
 Signaler une faille : voir [`SECURITY.md`](SECURITY.md).
