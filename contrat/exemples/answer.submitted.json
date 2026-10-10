@@ -1,0 +1,12 @@
+{
+  "schema": "othila-lab/1",
+  "id": "4e5f6a7b-8c9d-4e0f-9a1b-2c3d4e5f6a7b",
+  "type": "answer.submitted",
+  "session": "GQL-2026-10",
+  "learner": "b7e2a1c4-5d6f-4a8b-9c0d-1e2f3a4b5c6d",
+  "lab": "n1",
+  "step": "fix",
+  "at": "2026-10-13T10:21:30.000+02:00",
+  "source": "reporter",
+  "payload": { "text": "Le résolveur organizer relisait tous les utilisateurs à chaque événement. DataLoader regroupe les ids d'une même requête et ne lit le dépôt qu'une fois." }
+}

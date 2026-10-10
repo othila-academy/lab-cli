@@ -1,0 +1,12 @@
+{
+  "schema": "othila-lab/1",
+  "id": "2c3d4e5f-6a7b-4c8d-9e0f-1a2b3c4d5e6f",
+  "type": "hint.revealed",
+  "session": "GQL-2026-10",
+  "learner": "b7e2a1c4-5d6f-4a8b-9c0d-1e2f3a4b5c6d",
+  "lab": "n1",
+  "step": "observe",
+  "at": "2026-10-13T09:48:03.000+02:00",
+  "source": "reporter",
+  "payload": { "level": 2, "checkId": "one-call-per-list" }
+}

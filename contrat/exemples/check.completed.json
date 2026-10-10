@@ -1,0 +1,24 @@
+{
+  "schema": "othila-lab/1",
+  "id": "6f1c2d9e-3b4a-4c5d-8e7f-9a0b1c2d3e4f",
+  "type": "check.completed",
+  "session": "GQL-2026-10",
+  "learner": "b7e2a1c4-5d6f-4a8b-9c0d-1e2f3a4b5c6d",
+  "lab": "n1",
+  "step": "observe",
+  "at": "2026-10-13T09:42:17.512+02:00",
+  "source": "reporter",
+  "payload": {
+    "durationMs": 1840,
+    "passed": ["counter-exposed"],
+    "failed": [
+      {
+        "id": "one-call-per-list",
+        "label": "la liste des événements interroge le dépôt des utilisateurs une seule fois",
+        "message": "11 accès au dépôt pour 10 événements : regarde la trace du serveur, puis Event.organizer"
+      }
+    ],
+    "courseRef": "lab-n1-start-2-g3f9a1c",
+    "stepDigest": "9b74c9897bac770ffc029102a200c5de3f3b2f0c3f1c2d9e3b4a4c5d8e7f9a0b"
+  }
+}

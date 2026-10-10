@@ -1,0 +1,7 @@
+version: 2
+updates:
+  # Les actions sont épinglées par empreinte : Dependabot propose les nouvelles versions par pull request.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

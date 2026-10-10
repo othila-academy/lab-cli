@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Les tests ne font que lire le dépôt.
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Tests sur Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [20, 24]
+    steps:
+      # Actions épinglées par empreinte de commit, suivies par Dependabot.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm ci --ignore-scripts
+      # node --test n'accepte des motifs qu'à partir de Node 21 : le shell développe la liste des fichiers.
+      - run: node --test src/tests/*.test.mjs
+      - run: node bin/lab.mjs --help
+      - run: node scripts/pack-contents.mjs

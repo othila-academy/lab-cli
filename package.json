@@ -1,0 +1,44 @@
+{
+  "name": "@othila-academy/lab",
+  "version": "0.7.0",
+  "description": "Commande lab d'othila-lab : checks en local contre votre serveur, remontée au formateur, indices, rejeu.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/othila-academy/lab-cli.git"
+  },
+  "homepage": "https://github.com/othila-academy/lab-cli#readme",
+  "bugs": {
+    "url": "https://github.com/othila-academy/lab-cli/issues"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
+  },
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "lab": "bin/lab.mjs"
+  },
+  "exports": {
+    ".": "./src/index.mjs",
+    "./contrat/*": "./contrat/*",
+    "./points/*": "./points/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "bin",
+    "src",
+    "contrat",
+    "points",
+    "!src/**/*.test.mjs",
+    "!src/tests",
+    "!src/test-helpers",
+    "!src/fixtures"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test \"src/**/*.test.mjs\""
+  }
+}

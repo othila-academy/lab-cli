@@ -1,0 +1,59 @@
+name: Publier @othila-academy/lab
+
+# Pousser un tag v<version> publie le paquet sur npmjs, en public, par publication de confiance (OIDC) :
+# aucun jeton npm n'est stocké. Le nom de ce fichier et l'environnement « npm » sont déclarés à l'identique
+# dans les réglages du paquet sur npmjs ; les renommer casse la publication.
+#   npm version 0.7.1 --no-git-tag-version && git commit -am "0.7.1" && git tag v0.7.1 && git push --follow-tags
+on:
+  push:
+    tags: ['v*']
+
+# Le strict nécessaire : lire le dépôt, obtenir le jeton OIDC que npm échange contre le droit de publier
+# et qui signe l'attestation de provenance.
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    # Environnement limité aux tags v* et soumis à validation manuelle dans les réglages du dépôt.
+    environment: npm
+    steps:
+      # Actions épinglées par empreinte de commit : un tag d'action déplacé ne change rien ici.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      # La publication de confiance demande npm 11.5.1 au moins.
+      - run: npm install --global npm@11.19.0
+      - name: Le tag correspond à la version de package.json
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::le tag $GITHUB_REF_NAME ne correspond pas à la version $version de package.json"
+            exit 1
+          fi
+      # Une version déjà sur npmjs (relance après une panne) : on le dit et on s'arrête sans erreur,
+      # puisqu'une version publiée ne se remplace pas.
+      - name: Version déjà publiée ?
+        id: published
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if npm view "@othila-academy/lab@$version" version --registry https://registry.npmjs.org > /dev/null 2>&1; then
+            echo "::notice::@othila-academy/lab@$version est déjà sur npmjs : rien à publier"
+            echo "done=true" >> "$GITHUB_OUTPUT"
+          fi
+      # Aucun script d'installation ne s'exécute dans le job qui publie.
+      - if: steps.published.outputs.done != 'true'
+        run: npm ci --ignore-scripts
+      - if: steps.published.outputs.done != 'true'
+        run: npm test
+      - name: Le paquet ne contient que le code, le contrat, les points et leur documentation
+        if: steps.published.outputs.done != 'true'
+        run: node scripts/pack-contents.mjs
+      - name: Publication sur npmjs, avec attestation de provenance
+        if: steps.published.outputs.done != 'true'
+        run: npm publish --provenance

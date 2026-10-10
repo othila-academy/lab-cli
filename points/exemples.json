@@ -1,0 +1,22 @@
+[
+  { "name": "sans indice", "value": 100, "events": [{ "type": "check", "green": true }, { "type": "answer" }], "expected": 100 },
+  { "name": "indice 1", "value": 100, "events": [{ "type": "hint", "level": 1 }, { "type": "check", "green": true }, { "type": "answer" }], "expected": 90 },
+  { "name": "indice 2", "value": 100, "events": [{ "type": "hint", "level": 1 }, { "type": "hint", "level": 2 }, { "type": "check", "green": true }, { "type": "answer" }], "expected": 75 },
+  { "name": "indice 3, plancher", "value": 100, "events": [{ "type": "hint", "level": 1 }, { "type": "hint", "level": 2 }, { "type": "hint", "level": 3 }, { "type": "check", "green": true }, { "type": "answer" }], "expected": 50 },
+  { "name": "valeur de l'auteur", "value": 200, "events": [{ "type": "hint", "level": 2 }, { "type": "check", "green": true }, { "type": "answer" }], "expected": 150 },
+  { "name": "arrondi à l'entier inférieur", "value": 7, "events": [{ "type": "hint", "level": 1 }, { "type": "check", "green": true }, { "type": "answer" }], "expected": 6 },
+  { "name": "arrondi, plancher impair", "value": 3, "events": [{ "type": "hint", "level": 3 }, { "type": "check", "green": true }, { "type": "answer" }], "expected": 1 },
+  { "name": "valeur minimale", "value": 1, "events": [{ "type": "hint", "level": 1 }, { "type": "check", "green": true }, { "type": "answer" }], "expected": 0 },
+  { "name": "jamais soumise", "value": 100, "events": [{ "type": "check", "green": true }], "expected": 0 },
+  { "name": "jamais verte", "value": 100, "events": [{ "type": "check", "green": false }, { "type": "answer" }], "expected": 0 },
+  { "name": "soumise sans check", "value": 100, "events": [{ "type": "answer" }], "expected": 0 },
+  { "name": "soumise en échec, puis au vert", "value": 100, "events": [{ "type": "check", "green": false }, { "type": "answer" }, { "type": "hint", "level": 1 }, { "type": "check", "green": true }, { "type": "answer" }], "expected": 90 },
+  { "name": "verte puis en échec au moment de soumettre", "value": 100, "events": [{ "type": "check", "green": true }, { "type": "check", "green": false }, { "type": "answer" }], "expected": 0 },
+  { "name": "indice après l'acquisition, gratuit", "value": 100, "events": [{ "type": "check", "green": true }, { "type": "answer" }, { "type": "hint", "level": 1 }, { "type": "hint", "level": 2 }], "expected": 100 },
+  { "name": "deux soumissions vertes, la première compte", "value": 100, "events": [{ "type": "check", "green": true }, { "type": "answer" }, { "type": "hint", "level": 3 }, { "type": "check", "green": true }, { "type": "answer" }], "expected": 100 },
+  { "name": "acquise puis en échec : les points restent", "value": 100, "events": [{ "type": "check", "green": true }, { "type": "answer" }, { "type": "check", "green": false }], "expected": 100 },
+  { "name": "indices révélés dans le désordre de niveaux, le plus haut compte", "value": 100, "events": [{ "type": "hint", "level": 2 }, { "type": "hint", "level": 1 }, { "type": "check", "green": true }, { "type": "answer" }], "expected": 75 },
+  { "name": "valeur maximale", "value": 1000, "events": [{ "type": "hint", "level": 1 }, { "type": "check", "green": true }, { "type": "answer" }], "expected": 900 },
+  { "name": "aucun évènement", "value": 100, "events": [], "expected": 0 },
+  { "name": "verte, puis check injoignable (compté en échec), puis soumission", "value": 100, "events": [{ "type": "check", "green": true }, { "type": "check", "green": false }, { "type": "answer" }, { "type": "check", "green": true }, { "type": "answer" }], "expected": 100 }
+]
