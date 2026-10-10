@@ -3,27 +3,51 @@ name: Publier @othila-academy/lab
 # Pousser un tag v<version> publie le paquet sur npmjs, en public, par publication de confiance (OIDC) :
 # aucun jeton npm n'est stocké. Le nom de ce fichier et l'environnement « npm » sont déclarés à l'identique
 # dans les réglages du paquet sur npmjs ; les renommer casse la publication.
-#   npm version 0.7.1 --no-git-tag-version && git commit -am "0.7.1" && git tag v0.7.1 && git push --follow-tags
+# Procédure : pousser main, attendre la CI verte, puis poser et pousser le tag v<version>.
 on:
   push:
     tags: ['v*']
 
-# Le strict nécessaire : lire le dépôt, obtenir le jeton OIDC que npm échange contre le droit de publier
-# et qui signe l'attestation de provenance.
+# Par défaut, rien d'autre que lire le dépôt ; seul le job de publication reçoit le jeton OIDC.
 permissions:
   contents: read
-  id-token: write
 
 jobs:
-  publish:
+  # La publication ne part qu'après ces tests, sur chaque version de Node annoncée par « engines »,
+  # quel que soit l'état de la CI de main au moment du tag.
+  tests:
+    name: Tests sur Node ${{ matrix.node }}
     runs-on: ubuntu-latest
-    # Environnement limité aux tags v* et soumis à validation manuelle dans les réglages du dépôt.
-    environment: npm
+    strategy:
+      matrix:
+        node: [20, 24]
     steps:
       # Actions épinglées par empreinte de commit : un tag d'action déplacé ne change rien ici.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm ci --ignore-scripts
+      - run: npm test
+      - run: node bin/lab.mjs --help
+
+  publish:
+    needs: tests
+    runs-on: ubuntu-latest
+    # Lire le dépôt, et obtenir le jeton OIDC que npm échange contre le droit de publier
+    # et qui signe l'attestation de provenance.
+    permissions:
+      contents: read
+      id-token: write
+    # Environnement limité aux tags v* et soumis à validation manuelle dans les réglages du dépôt.
+    environment: npm
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
@@ -34,6 +58,13 @@ jobs:
           version=$(node -p "require('./package.json').version")
           if [ "v$version" != "$GITHUB_REF_NAME" ]; then
             echo "::error::le tag $GITHUB_REF_NAME ne correspond pas à la version $version de package.json"
+            exit 1
+          fi
+      # On ne publie que ce qui est sur main : un tag posé sur une branche de travail ne part pas.
+      - name: Le commit tagué est sur main
+        run: |
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::le commit $GITHUB_SHA du tag $GITHUB_REF_NAME n'est pas sur main"
             exit 1
           fi
       # Une version déjà sur npmjs (relance après une panne) : on le dit et on s'arrête sans erreur,
@@ -49,8 +80,6 @@ jobs:
       # Aucun script d'installation ne s'exécute dans le job qui publie.
       - if: steps.published.outputs.done != 'true'
         run: npm ci --ignore-scripts
-      - if: steps.published.outputs.done != 'true'
-        run: npm test
       - name: Le paquet ne contient que le code, le contrat, les points et leur documentation
         if: steps.published.outputs.done != 'true'
         run: node scripts/pack-contents.mjs
