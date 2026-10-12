@@ -11,6 +11,7 @@ export const LEGACY_FILE = 'othila-lab.config.json';
 const SLUG = /^[a-z0-9][a-z0-9-]{0,63}$/;
 const MAX_TITLE = 200; // limite du catalogue côté serveur
 const DEFAULTS = { server: 'packages/server-js/src/server.js', graphql: 'http://localhost:4000/graphql', endpoint: DEFAULT_ENDPOINT };
+const REFERENCE_DEFAULTS = { remote: 'origin', branch: 'main' };
 
 function findUp(from, name) {
   let dir = path.resolve(from);
@@ -43,7 +44,7 @@ function validate(raw, dir) {
   if (typeof raw.id !== 'string' || !SLUG.test(raw.id)) fail('id', 'minuscules, chiffres et tirets attendus');
   if (!isText(raw.title)) fail('title', 'texte non vide attendu');
   if (raw.title.trim().length > MAX_TITLE) fail('title', `${MAX_TITLE} caractères au plus`);
-  if (!Array.isArray(raw.seances) || raw.seances.length === 0) fail('seances', 'liste non vide attendue');
+  if (!Array.isArray(raw.seances)) fail('seances', 'liste attendue');
   const seen = new Set();
   const seances = raw.seances.map((seance, i) => {
     if (!isText(seance?.title)) fail(`seances[${i}].title`, 'texte non vide attendu');
@@ -61,13 +62,23 @@ function validate(raw, dir) {
   for (const key of Object.keys(DEFAULTS)) {
     if (raw[key] !== undefined && !isText(raw[key])) fail(key, 'texte non vide attendu');
   }
+  // D'où lab update tire les définitions des labs : la branche de référence du cours.
+  const reference = raw.reference ?? {};
+  if (typeof reference !== 'object' || Array.isArray(reference)) fail('reference', 'objet attendu');
+  for (const key of Object.keys(REFERENCE_DEFAULTS)) {
+    if (reference[key] !== undefined && !isText(reference[key])) fail(`reference.${key}`, 'texte non vide attendu');
+  }
   return {
     id: raw.id,
     title: raw.title.trim(),
     seances,
     server: raw.server ?? DEFAULTS.server,
     graphql: raw.graphql ?? DEFAULTS.graphql,
-    endpoint: raw.endpoint ?? DEFAULTS.endpoint
+    endpoint: raw.endpoint ?? DEFAULTS.endpoint,
+    reference: {
+      remote: reference.remote ?? REFERENCE_DEFAULTS.remote,
+      branch: reference.branch ?? REFERENCE_DEFAULTS.branch
+    }
   };
 }
 
