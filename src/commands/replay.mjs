@@ -1,5 +1,6 @@
-import { endpointUrl } from '../config.mjs';
-import { catalog, listLabs } from '../labs.mjs';
+import { chainOf, verifyChain } from '../chain.mjs';
+import { endpointUrl, formation } from '../config.mjs';
+import { catalog } from '../labs.mjs';
 import { ensureReplaySession, formatReport, replayLab, reportReplay } from '../replay.mjs';
 
 // lab replay [--lab ID] [--keep] [--session CODE] [--endpoint URL] : depuis la racine du dépôt de cours,
@@ -15,9 +16,20 @@ export async function run({ flags, io }) {
     io.err('--session demande la clé formateur : FORMATEUR_KEY=… npx lab replay --session ' + session);
     return 3;
   }
-  const labs = flags.lab ? [String(flags.lab)] : listLabs().map((l) => l.id);
-  if (labs.length === 0) {
-    io.err('aucun lab à rejouer : lance la commande depuis la racine du dépôt de cours');
+  if (flags.lab === true) {
+    io.err('--lab demande un identifiant de lab : npx lab replay --lab n1');
+    return 3;
+  }
+  const f = formation();
+  const chain = chainOf(f);
+  const only = flags.lab === undefined ? null : String(flags.lab);
+  const steps = only ? chain.filter((s) => s.lab === only) : chain;
+  if (only && steps.length === 0) {
+    io.err(`lab inconnu : ${only} (disponibles : ${chain.map((s) => s.lab).join(', ') || 'aucun'})`);
+    return 3;
+  }
+  if (steps.length === 0) {
+    io.err('aucun lab à rejouer : la chaîne de formation.json est vide');
     return 3;
   }
   const endpoint = flags.endpoint ? String(flags.endpoint) : endpointUrl();
@@ -35,9 +47,17 @@ export async function run({ flags, io }) {
     }
   }
 
+  // La chaîne d'abord : un tag manquant ou mal placé s'annonce avant tout worktree.
+  const problems = verifyChain(f, f.root, { until: only ?? undefined });
+  if (problems.length > 0) {
+    for (const problem of problems) io.err(problem);
+    io.err('rejeu impossible : répare la chaîne (docs/ecrire-un-lab.md, « Dépannage »)');
+    return 1;
+  }
+
   let failed = false;
-  for (const labId of labs) {
-    const report = await replayLab(labId, { keep: Boolean(flags.keep), log: io.out });
+  for (const step of steps) {
+    const report = await replayLab(step.lab, { start: step.start, solution: step.solution, repo: f.root, keep: Boolean(flags.keep), log: io.out });
     io.out('');
     for (const line of formatReport(report)) io.out(line);
     if (report.states.some((s) => s.problems.length > 0)) failed = true;

@@ -100,3 +100,10 @@ test('verifyChain : une chaîne sans lab ne demande que base', () => {
   git('tag', 'base');
   assert.deepEqual(verifyChain(f, course.root), []);
 });
+
+test('verifyChain until : seule la chaîne jusqu’au lab demandé compte', () => {
+  const f = chainCourse();
+  git('tag', '-d', 'solution/c');
+  assert.deepEqual(verifyChain(f, course.root, { until: 'b' }), []);
+  assert.deepEqual(verifyChain(f, course.root, { until: 'c' }), ['solution/c introuvable : pose le tag sur le commit de solution du lab c']);
+});

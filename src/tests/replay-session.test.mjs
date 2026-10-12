@@ -112,7 +112,7 @@ test('--session : serveur othila-lab injoignable, code 2 avant tout rejeu', asyn
   process.env.FORMATEUR_KEY = 'cle-formateur';
   try {
     const io = captureIo();
-    assert.equal(await main(['replay', '--lab', 'n1', '--session', 'SIM-REPLAY', '--endpoint', 'http://127.0.0.1:9'], io), 2);
+    assert.equal(await main(['replay', '--lab', 'demo', '--session', 'SIM-REPLAY', '--endpoint', 'http://127.0.0.1:9'], io), 2);
     assert.match(io.errors.join('\n'), /injoignable/);
     assert.equal(io.lines.some((l) => l.includes('[rejeu]')), false);
   } finally {
@@ -127,7 +127,7 @@ test('--session sur une session réelle : code 1 avant tout rejeu', async () => 
   try {
     await withEndpoint({ sessionStatus: 409, boardSimulated: false }, async (e) => {
       const io = captureIo();
-      assert.equal(await main(['replay', '--lab', 'n1', '--session', 'GQL-2026-10', '--endpoint', e.url], io), 1);
+      assert.equal(await main(['replay', '--lab', 'demo', '--session', 'GQL-2026-10', '--endpoint', e.url], io), 1);
       assert.match(io.errors.join('\n'), /n'est pas simulée/);
       assert.equal(io.lines.some((l) => l.includes('[rejeu]')), false);
       assert.deepEqual(e.joins, []);
