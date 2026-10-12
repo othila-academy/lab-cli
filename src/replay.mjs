@@ -1,12 +1,14 @@
-// Rejeu des labs sur leurs états de référence, depuis la machine du formateur.
-// Pour chaque lab et chaque état (start, solution) : worktree git sur le tag, npm ci,
-// serveur en processus fils, `lab check --json --no-report`, puis comparaison à la règle :
-// tout échoue au départ sauf passesOnStart, tout passe sur la solution.
+// Rejeu des labs sur la chaîne, depuis la machine du formateur.
+// Pour chaque lab et chaque état (start = son départ, solution = solution/<lab>) : worktree git sur le tag, npm ci,
+// .othila-lab/ et le paquet lab de l'arbre courant posés dessus, serveur en processus fils,
+// `lab check --json --no-report`, puis comparaison à la règle : tout échoue au départ sauf passesOnStart, tout passe sur la solution.
+// Le tag fige le code ; la définition du lab et la commande sont celles d'aujourd'hui.
 import { execFileSync, spawn } from 'node:child_process';
-import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, rmSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { formation, projectRoot } from './config.mjs';
+import { fileURLToPath } from 'node:url';
+import { HOME, formation, projectRoot } from './config.mjs';
 import { git } from './git.mjs';
 import { getJson, postJson } from './http.mjs';
 import { buildEvent } from './reporter.mjs';
@@ -29,18 +31,28 @@ export function evaluate(state, results) {
   return problems;
 }
 
-// Le lab du worktree : celui que le cours déclare dans ses devDependencies, installé par npm ci.
-function labBinary(dir) {
-  const bin = path.join(dir, 'node_modules', '@othila-academy', 'lab', 'bin', 'lab.mjs');
-  if (!existsSync(bin)) throw new Error(`@othila-academy/lab n'est pas installé dans ${dir} : le dépôt du cours doit le déclarer en devDependency`);
-  return bin;
+// Le paquet qui exécute le rejeu : sa commande joue les checks, et les labs l'importent sous @othila-academy/lab.
+const PACKAGE_ROOT = fileURLToPath(new URL('../', import.meta.url));
+const LAB_BINARY = path.join(PACKAGE_ROOT, 'bin', 'lab.mjs');
+
+// Après npm ci : les définitions de l'arbre courant (sans l'état local) et le paquet courant remplacent ceux de l'état.
+function overlay(repo, dir) {
+  const source = path.join(repo, HOME);
+  const target = path.join(dir, HOME);
+  const local = path.join(source, 'local');
+  rmSync(target, { recursive: true, force: true });
+  cpSync(source, target, { recursive: true, filter: (p) => p !== local && !p.startsWith(local + path.sep) });
+  const link = path.join(dir, 'node_modules', '@othila-academy', 'lab');
+  rmSync(link, { recursive: true, force: true });
+  mkdirSync(path.dirname(link), { recursive: true }); // absent quand le cours n'a aucune dépendance
+  symlinkSync(PACKAGE_ROOT, link, 'dir');
 }
 
 function runCheckJson({ dir, labId, url, stateDir }) {
   const env = { ...process.env, OTHILA_LAB_DIR: stateDir };
-  delete env.OTHILA_LAB_ROOT; // le lab du worktree trouve sa racine lui-même
+  delete env.OTHILA_LAB_ROOT; // la commande trouve la racine du worktree elle-même
   return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [labBinary(dir), 'check', labId, '--json', '--no-report', '--url', url], {
+    const child = spawn(process.execPath, [LAB_BINARY, 'check', labId, '--json', '--no-report', '--url', url], {
       cwd: dir,
       env,
       stdio: ['ignore', 'pipe', 'pipe']
@@ -60,19 +72,22 @@ function runCheckJson({ dir, labId, url, stateDir }) {
   });
 }
 
-export async function replayLab(labId, { repo = projectRoot(), keep = false, log = () => {} } = {}) {
+// start et solution : les tags des deux états du lab, donnés par la chaîne (chainOf).
+export async function replayLab(labId, { start, solution, repo = projectRoot(), keep = false, log = () => {} }) {
   const base = mkdtempSync(path.join(tmpdir(), `othila-rejeu-${labId}-`));
+  const tags = { start, solution };
   const states = [];
   for (const state of STATES) {
-    const tag = `lab-${labId}-${state}`;
+    const tag = tags[state];
     const dir = path.join(base, state);
-    log(`[rejeu] ${labId} · ${state} · worktree sur ${tag}`);
+    log(`[rejeu] ${labId} · ${state} · worktree ${dir} sur ${tag}`);
     git(['worktree', 'add', '--detach', dir, tag], repo);
     let server = null;
     try {
       const started = Date.now();
       execFileSync('npm', ['ci', '--no-audit', '--no-fund'], { cwd: dir, stdio: 'pipe' });
       const installMs = Date.now() - started;
+      overlay(repo, dir);
       server = await startServer({ cwd: dir, script: formation(dir).server });
       const results = await runCheckJson({ dir, labId, url: server.url, stateDir: path.join(base, `${state}-othila-lab`) });
       states.push({ state, tag, results, problems: evaluate(state, results), installMs });

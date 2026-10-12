@@ -18,8 +18,11 @@ export function chainOf(f) {
 export const startOf = (labId, f) => chainOf(f).find((step) => step.lab === labId)?.start ?? null;
 
 // Les anomalies de la chaîne, vide si elle est saine : d'abord les tags manquants, puis l'ordre des états.
-export function verifyChain(f, cwd = process.cwd()) {
-  const chain = chainOf(f);
+// Avec until, la chaîne s'arrête à ce lab : les labs suivants, encore en écriture, ne comptent pas.
+export function verifyChain(f, cwd = process.cwd(), { until } = {}) {
+  const whole = chainOf(f);
+  const end = until === undefined ? whole.length : whole.findIndex((step) => step.lab === until) + 1;
+  const chain = whole.slice(0, end);
   const missing = [];
   if (!tagExists(BASE_TAG, cwd)) missing.push(`${BASE_TAG} introuvable : pose le tag ${BASE_TAG} sur le starter`);
   for (const step of chain) {
