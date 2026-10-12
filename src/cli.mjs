@@ -15,8 +15,8 @@ export const USAGE = `othila-lab · commande lab
   lab update                                                                récupérer les nouveaux labs et les consignes à jour
   lab catchup <lab>                                                         repartir du départ d'un lab sur une nouvelle branche
   lab leave [--force]                                                       quitter la session et effacer le jeton de la machine
-  lab catalog [--json] [--publish] [--endpoint URL]                       lister les labs ; --publish les publie comme formation (formateur)
-  lab replay [--lab ID] [--keep] [--session CODE] [--endpoint URL]          rejouer les labs sur leurs tags (formateur)
+  lab catalog [--json] [--publish] [--endpoint URL]                         lister les labs ; --publish les publie comme formation (formateur)
+  lab replay [--lab ID] [--keep] [--session CODE] [--endpoint URL]          rejouer les labs sur la chaîne base → solution/<lab> (formateur)
 
 Codes de sortie : 0 tout passé · 1 un check en échec · 2 serveur injoignable · 3 erreur d'usage`;
 
