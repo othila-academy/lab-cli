@@ -33,3 +33,13 @@ export const branchExists = (branch, cwd = process.cwd()) => refExists(`refs/hea
 export const tagExists = (tag, cwd = process.cwd()) => refExists(`refs/tags/${tag}`, cwd);
 
 export const startBranch = ({ tag, branch, cwd = process.cwd() }) => git(['checkout', '-b', branch, tag], cwd);
+
+// Vrai si ancestor précède descendant dans l'historique : git répond par son code de sortie, sans rien écrire.
+export function isAncestor(ancestor, descendant, cwd = process.cwd()) {
+  try {
+    git(['merge-base', '--is-ancestor', ancestor, descendant], cwd);
+    return true;
+  } catch {
+    return false;
+  }
+}
