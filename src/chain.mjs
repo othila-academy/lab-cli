@@ -1,7 +1,7 @@
 // La chaîne d'un cours : base, puis la solution de chaque lab, dans l'ordre de formation.json.
 // La solution d'un lab est le départ du suivant. Les tags ne figent que le code, jamais la définition des labs.
 import { listLabs } from './labs.mjs';
-import { isAncestor, tagExists } from './git.mjs';
+import { branchExists, isAncestor, tagExists } from './git.mjs';
 
 export const BASE_TAG = 'base';
 export const solutionTag = (labId) => `solution/${labId}`;
@@ -29,6 +29,11 @@ export function verifyChain(f, cwd = process.cwd(), { until } = {}) {
     if (!tagExists(step.solution, cwd)) missing.push(`${step.solution} introuvable : pose le tag sur le commit de solution du lab ${step.lab}`);
   }
   if (missing.length > 0) return missing;
+  // Le dernier état vérifié doit être sur la branche du cours, sinon toute la chaîne peut vivre à côté de main.
+  const { branch } = f.reference;
+  const last = chain.length > 0 ? chain[chain.length - 1].solution : BASE_TAG;
+  const mainRef = branchExists(branch, cwd) ? `refs/heads/${branch}` : 'HEAD'; // un clone sans main locale : la branche courante
+  const offMain = isAncestor(last, mainRef, cwd) ? [] : [`${last} n’est pas sur ${branch} : pose le tag sur un commit de ${branch}`];
   const broken = [];
   if (chain.length > 0 && !isAncestor(BASE_TAG, chain[0].solution, cwd)) {
     broken.push(`${BASE_TAG} n’est pas un ancêtre de ${chain[0].solution} : la chaîne est cassée au départ`);
@@ -39,5 +44,5 @@ export function verifyChain(f, cwd = process.cwd(), { until } = {}) {
       broken.push(`${prev.solution} n’est pas un ancêtre de ${next.solution} : la chaîne est cassée entre ${prev.lab} et ${next.lab}`);
     }
   }
-  return broken;
+  return [...broken, ...offMain];
 }

@@ -27,7 +27,7 @@ export function isolateGitEnv() {
 }
 
 // Un cours publié : le dépôt de l'auteur (main, tag base), son remote nu, et le clone d'un apprenant sur my-project.
-// Les trois vivent sous le dossier du cours de l'auteur, supprimé avec lui.
+// Le remote et le clone sont des dossiers voisins de celui du cours (<cours>.remote.git, <cours>.learner) : les tests les suppriment eux-mêmes.
 export function publishCourse(course, { learnerBranch = 'my-project' } = {}) {
   const author = gitIn(course.root);
   author('init', '-q', '-b', 'main');

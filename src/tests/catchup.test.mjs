@@ -59,7 +59,7 @@ test('lab catchup : le premier lab repart de base, un autre de la solution du pr
   assert.equal(readFileSync(learnerFile('code.txt'), 'utf8'), 'solution a\n');
   const out = io.lines.join('\n');
   assert.match(out, /branche catchup-b créée depuis solution\/a ; ta branche my-project reste intacte/);
-  assert.match(out, /Ensuite : npx lab start b/);
+  assert.match(out, /Ensuite : npm install .*, puis npx lab start b/);
 
   learner('checkout', '-q', 'my-project');
   assert.equal(await main(['catchup', 'a'], captureIo()), 0);
@@ -112,4 +112,26 @@ test('lab catchup : refus sur arbre modifié, lab inconnu, départ manquant, lab
   assert.equal(await main(['catchup', 'b'], missing), 1);
   assert.match(missing.errors.join('\n'), /solution\/a introuvable : le départ du lab b manque/);
   assert.equal(learner('branch', '--show-current'), 'my-project');
+});
+
+test('lab catchup : un tag de départ déplacé par le formateur remplace l’ancien', async () => {
+  const { learner, author } = setup();
+  learner('fetch', '-q', '--tags', 'origin');
+  assert.equal(learner('rev-parse', 'solution/a'), author('rev-parse', 'solution/a'));
+  // le formateur corrige la solution de a et déplace son tag
+  author('checkout', '-q', '-b', 'reprise', 'solution/a');
+  writeFileSync(path.join(course.root, 'code.txt'), 'solution a v2\n');
+  author('commit', '-q', '-am', 'solution a v2');
+  author('tag', '-f', 'solution/a');
+  author('push', '-q', '--force', 'origin', 'solution/a');
+  author('checkout', '-q', 'main');
+  assert.equal(await main(['catchup', 'b'], captureIo()), 0);
+  assert.equal(readFileSync(learnerFile('code.txt'), 'utf8'), 'solution a v2\n');
+});
+
+test('lab catchup : rappelle npm install, les dépendances du départ peuvent différer', async () => {
+  setup();
+  const io = captureIo();
+  assert.equal(await main(['catchup', 'a'], io), 0);
+  assert.match(io.lines.join('\n'), /npm install/);
 });

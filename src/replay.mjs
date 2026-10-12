@@ -45,7 +45,7 @@ function overlay(repo, dir) {
   const link = path.join(dir, 'node_modules', '@othila-academy', 'lab');
   rmSync(link, { recursive: true, force: true });
   mkdirSync(path.dirname(link), { recursive: true }); // absent quand le cours n'a aucune dépendance
-  symlinkSync(PACKAGE_ROOT, link, 'dir');
+  symlinkSync(PACKAGE_ROOT, link, process.platform === 'win32' ? 'junction' : 'dir'); // une jonction ne demande pas de droits sous Windows
 }
 
 function runCheckJson({ dir, labId, url, stateDir }) {

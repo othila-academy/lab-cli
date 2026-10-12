@@ -107,3 +107,15 @@ test('verifyChain until : seule la chaîne jusqu’au lab demandé compte', () =
   assert.deepEqual(verifyChain(f, course.root, { until: 'b' }), []);
   assert.deepEqual(verifyChain(f, course.root, { until: 'c' }), ['solution/c introuvable : pose le tag sur le commit de solution du lab c']);
 });
+
+test('verifyChain : une solution posée hors de main est signalée, même si elle descend de la précédente', () => {
+  const f = chainCourse();
+  git('tag', '-d', 'solution/c');
+  git('checkout', '-q', '-b', 'side', 'solution/b');
+  commit('solution c hors de main');
+  git('tag', 'solution/c');
+  git('checkout', '-q', 'main');
+  git('reset', '-q', '--hard', 'solution/b');
+  assert.deepEqual(verifyChain(f, course.root), ['solution/c n’est pas sur main : pose le tag sur un commit de main']);
+  assert.deepEqual(verifyChain(f, course.root, { until: 'b' }), []);
+});

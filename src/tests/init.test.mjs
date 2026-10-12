@@ -1,10 +1,10 @@
 import { test, before, after, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { main } from '../cli.mjs';
 import { makeCourse, tinyLab } from '../test-helpers/course.mjs';
-import { commitAll, gitIn } from '../test-helpers/git.mjs';
+import { commitAll, gitIn, isolateGitEnv, publishCourse } from '../test-helpers/git.mjs';
 import { captureIo } from '../test-helpers/io.mjs';
 
 let course;
@@ -84,4 +84,35 @@ test('lab init : un cours sans lab le dit', async () => {
   assert.equal(await main(['init'], io), 0);
   assert.equal(git('branch', '--show-current'), 'my-project');
   assert.match(io.lines.join('\n'), /aucun lab pour l'instant : npx lab update quand le formateur en publie/);
+});
+
+test('lab init : base sans lab, labs publiés ensuite sur main ; init apporte les définitions de main', async () => {
+  const restoreEnv = isolateGitEnv();
+  course = makeCourse({ seances: [] });
+  writeFileSync(path.join(course.home, '.gitignore'), 'local/\n');
+  const published = publishCourse(course);
+  try {
+    published.learner('checkout', '-q', 'main');
+    published.learner('branch', '-D', 'my-project');
+    for (const [id, title] of [['a', 'Premier lab'], ['b', 'Second lab']]) {
+      mkdirSync(path.join(course.home, 'labs', id), { recursive: true });
+      for (const [name, content] of Object.entries(tinyLab(title))) writeFileSync(path.join(course.home, 'labs', id, name), content);
+    }
+    course.write({ id: 'cours-test', title: 'Cours de test', seances: [{ title: 'S1', labs: ['a', 'b'] }] });
+    published.publish('labs a et b');
+    process.chdir(published.learnerDir);
+    const io = captureIo();
+    assert.equal(await main(['init'], io), 0, io.errors.join('\n'));
+    const learner = gitIn(published.learnerDir);
+    assert.equal(learner('branch', '--show-current'), 'my-project');
+    assert.match(learner('log', '-1', '--format=%s'), /^labs à jour \(main@/);
+    const out = io.lines.join('\n');
+    assert.match(out, /Premier lab/);
+    assert.match(out, /Ensuite : npx lab start a/);
+    assert.equal(await main(['start', 'a'], captureIo()), 0);
+  } finally {
+    restoreEnv();
+    process.chdir(originalCwd);
+    for (const dir of [published.remote, published.learnerDir]) rmSync(dir, { recursive: true, force: true });
+  }
 });
