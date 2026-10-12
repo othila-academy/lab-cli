@@ -5,6 +5,7 @@ export const USAGE = `othila-lab · commande lab
 
   lab join [--terminal] [--session CODE] [--email E] [--name PRÉNOM] [--endpoint URL]   rejoindre une session (navigateur par défaut)
   lab env                                                                   vérifier l'environnement
+  lab init [--branch NOM]                                                   créer ta branche de projet depuis le départ du cours
   lab start <lab>                                                           démarrer un lab depuis son tag, avec sa fiche
   lab show <lab> [étape]                                                    afficher la fiche : contexte, objectifs, consignes
   lab check <lab> [étape] [--url URL] [--answer RÉPONSE] [--json] [--no-report]
@@ -21,6 +22,7 @@ Codes de sortie : 0 tout passé · 1 un check en échec · 2 serveur injoignable
 const COMMANDS = {
   join: () => import('./commands/join.mjs'),
   env: () => import('./commands/env.mjs'),
+  init: () => import('./commands/init.mjs'),
   start: () => import('./commands/start.mjs'),
   check: () => import('./commands/check.mjs'),
   hint: () => import('./commands/hint.mjs'),
