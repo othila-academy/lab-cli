@@ -45,6 +45,29 @@ test('formation.json : champs lus, défauts appliqués, clés inconnues ignorée
   assert.equal('futur' in f, false);
 });
 
+test('formation.json : une chaîne sans lab est acceptée, la référence a ses défauts', () => {
+  course = makeCourse({ seances: [] });
+  const f = formation(course.root);
+  assert.deepEqual(f.seances, []);
+  assert.deepEqual(f.reference, { remote: 'origin', branch: 'main' });
+});
+
+test('formation.json : reference se règle champ par champ, et se valide', () => {
+  course = makeCourse({ labs: { a: tinyLab() }, manifest: { reference: { remote: 'upstream', branch: 'cours' } } });
+  assert.deepEqual(formation(course.root).reference, { remote: 'upstream', branch: 'cours' });
+  course.write({ id: 'x', title: 'T', seances: [], reference: { branch: 'cours' } });
+  assert.deepEqual(formation(course.root).reference, { remote: 'origin', branch: 'cours' });
+  for (const [reference, message] of [
+    ['main', /formation\.json : reference : objet attendu/],
+    [['origin'], /reference : objet attendu/],
+    [{ remote: '', branch: 'main' }, /reference\.remote : texte non vide attendu/],
+    [{ remote: 'origin', branch: 3 }, /reference\.branch : texte non vide attendu/]
+  ]) {
+    course.write({ id: 'x', title: 'T', seances: [], reference });
+    assert.throws(() => formation(course.root), message);
+  }
+});
+
 test('formation.json : chaque erreur nomme le fichier et le champ', () => {
   course = makeCourse({ labs: { a: tinyLab() } });
   const cases = [
@@ -53,7 +76,7 @@ test('formation.json : chaque erreur nomme le fichier et le champ', () => {
     [{ id: 'GraphQL', title: 'T', seances }, /id : minuscules, chiffres et tirets/],
     [{ id: 'x', title: ' ', seances }, /title : texte non vide attendu/],
     [{ id: 'x', title: 'x'.repeat(201), seances }, /formation\.json : title : 200 caractères au plus/],
-    [{ id: 'x', title: 'T', seances: [] }, /seances : liste non vide attendue/],
+    [{ id: 'x', title: 'T', seances: {} }, /seances : liste attendue/],
     [{ id: 'x', title: 'T', seances: [{ title: '', labs: ['a'] }] }, /seances\[0\]\.title : texte non vide attendu/],
     [{ id: 'x', title: 'T', seances: [{ title: 'x'.repeat(201), labs: ['a'] }] }, /seances\[0\]\.title : 200 caractères au plus/],
     [{ id: 'x', title: 'T', seances: [{ title: 'S', labs: [] }] }, /seances\[0\]\.labs : liste non vide attendue/],
