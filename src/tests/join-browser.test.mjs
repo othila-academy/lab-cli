@@ -153,7 +153,7 @@ test('--terminal, les options ou un terminal non interactif gardent la saisie au
 });
 
 test('browserCommand : open, cmd /c start, xdg-open', () => {
-  const url = 'https://lab.othila.academy/rejoindre?code=KQ7M-4TXP';
+  const url = 'https://lab.othila-academy.com/rejoindre?code=KQ7M-4TXP';
   assert.deepEqual(browserCommand(url, 'darwin'), ['open', [url]]);
   assert.deepEqual(browserCommand(url, 'win32'), ['cmd', ['/c', 'start', '', url]]);
   assert.deepEqual(browserCommand(url, 'linux'), ['xdg-open', [url]]);

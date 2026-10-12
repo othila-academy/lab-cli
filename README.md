@@ -34,7 +34,7 @@ Le paquet est publié en public sur npmjs : les élèves l'installent avec le re
   ],
   "server": "packages/server-js/src/server.js",
   "graphql": "http://localhost:4000/graphql",
-  "endpoint": "https://lab.othila.academy"
+  "endpoint": "https://lab.othila-academy.com"
 }
 ```
 
