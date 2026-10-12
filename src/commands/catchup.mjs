@@ -28,9 +28,10 @@ export async function run({ positionals: [labId], io }) {
     io.err("l'arbre de travail a des modifications : commite ou mets de côté ton travail avant lab catchup");
     return 1;
   }
-  // Les tags de solution publiés depuis le clone ; hors ligne, ceux déjà là suffisent peut-être.
+  // Les tags de solution publiés depuis le clone, et ceux que le formateur a déplacés (--force) : ils appartiennent au cours.
+  // Hors ligne, ceux déjà là suffisent peut-être.
   try {
-    git(['fetch', '--quiet', '--tags', f.reference.remote, f.reference.branch], f.root);
+    git(['fetch', '--quiet', '--force', '--tags', f.reference.remote, f.reference.branch], f.root);
   } catch {
     // le départ est cherché en local juste après
   }
@@ -51,6 +52,6 @@ export async function run({ positionals: [labId], io }) {
     io.err(`${error.message} : les labs restent ceux de ${step.start}`);
   }
   io.out('');
-  io.out(`Ensuite : npx lab start ${labId}`);
+  io.out(`Ensuite : npm install (les dépendances du départ peuvent différer), puis npx lab start ${labId}`);
   return 0;
 }

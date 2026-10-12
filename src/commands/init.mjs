@@ -3,6 +3,7 @@ import { formation } from '../config.mjs';
 import { branchExists, checkoutNewBranch, isClean, tagExists } from '../git.mjs';
 import { describeLab, listLabs } from '../labs.mjs';
 import { formatCatalog } from '../sheet.mjs';
+import { updateDefinitions } from '../update.mjs';
 
 const USAGE = 'usage : lab init [--branch NOM]';
 export const DEFAULT_BRANCH = 'my-project';
@@ -28,14 +29,22 @@ export async function run({ flags, io }) {
 
   checkoutNewBranch(branch, BASE_TAG);
   io.out(`branche ${branch} créée depuis ${BASE_TAG} : c'est ton projet, tu y travailles lab après lab`);
+  // base fige le starter, souvent sans lab : les définitions viennent de la référence du cours.
+  try {
+    updateDefinitions({ cwd: f.root, f, io });
+  } catch (error) {
+    if (error.code !== 1 && error.code !== 2) throw error;
+    io.err(`${error.message} : les labs restent ceux de ${BASE_TAG}, npx lab update plus tard`);
+  }
   io.out('');
-  const labs = listLabs(f);
+  const current = formation(f.root);
+  const labs = listLabs(current);
   if (labs.length === 0) {
     io.out("aucun lab pour l'instant : npx lab update quand le formateur en publie");
     return 0;
   }
   const described = [];
-  for (const { id } of labs) described.push(await describeLab(id, f));
+  for (const { id } of labs) described.push(await describeLab(id, current));
   for (const line of formatCatalog(described)) io.out(line);
   io.out('');
   io.out(`Ensuite : npx lab start ${labs[0].id}`);

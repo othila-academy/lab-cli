@@ -150,3 +150,37 @@ test('lab update : une autre version du paquet sur main est annoncée, pas insta
   assert.match(io.lines.join('\n'), /le cours utilise @othila-academy\/lab 0\.9\.0 \(installé : 0\.8\.0\) : npm install --save-dev --save-exact @othila-academy\/lab@0\.9\.0/);
   assert.equal(JSON.parse(readFileSync(learnerFile('node_modules', '@othila-academy', 'lab', 'package.json'), 'utf8')).version, '0.8.0');
 });
+
+test('lab update : une référence sans .othila-lab/ est refusée, rien n’est effacé', async () => {
+  const { learner, author } = setup();
+  author('checkout', '-q', '--orphan', 'vide');
+  author('rm', '-rq', '--cached', '.');
+  writeFileSync(path.join(course.root, 'autre.txt'), 'autre\n');
+  author('add', 'autre.txt');
+  author('commit', '-q', '-m', 'branche sans cours');
+  author('push', '-q', 'origin', 'vide');
+  const head = learner('rev-parse', 'HEAD');
+  writeFileSync(learnerFile('.othila-lab', 'formation.json'), JSON.stringify({ ...manifest(['a']), reference: { branch: 'vide' } }));
+  learner('commit', '-q', '-am', 'référence vide');
+  const io = captureIo();
+  assert.equal(await main(['update'], io), 1);
+  assert.match(io.errors.join('\n'), /origin\/vide n'a pas de \.othila-lab\/formation\.json/);
+  assert.ok(existsSync(learnerFile('.othila-lab', 'formation.json')));
+  assert.notEqual(learner('rev-parse', 'HEAD'), head);
+  assert.equal(learner('log', '-1', '--format=%s'), 'référence vide');
+});
+
+test('lab update : un état local suivi par erreur (git add -f) n’est ni supprimé ni commité', async () => {
+  const { learner, publish } = setup();
+  mkdirSync(learnerFile('.othila-lab', 'local'), { recursive: true });
+  writeFileSync(learnerFile('.othila-lab', 'local', 'state.json'), '{"progress":2}');
+  learner('add', '-f', '.othila-lab/local/state.json');
+  learner('commit', '-q', '-m', 'oups');
+  addLab('b', 'B');
+  course.write(manifest(['a', 'b']));
+  publish('lab b');
+  assert.equal(await main(['update'], captureIo()), 0);
+  assert.equal(readFileSync(learnerFile('.othila-lab', 'local', 'state.json'), 'utf8'), '{"progress":2}');
+  assert.equal(learner('show', '--name-only', '--format=', 'HEAD').includes('local/'), false);
+  assert.ok(existsSync(learnerFile('.othila-lab', 'labs', 'b', 'index.mjs')));
+});

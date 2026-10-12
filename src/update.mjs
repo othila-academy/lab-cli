@@ -6,20 +6,23 @@ import { HOME } from './config.mjs';
 import { git } from './git.mjs';
 
 const PACKAGE = '@othila-academy/lab';
+// Les définitions, sans l'état local de l'apprenant, même s'il a été suivi par erreur.
+const DEFINITIONS = [HOME, `:(exclude)${HOME}/local`];
 
 const refError = (message, code) => Object.assign(new Error(message), { code });
 
 // Récupère la référence : 'online' si le fetch passe, 'missing' si le remote répond sans cette branche, 'offline' sinon.
+// La refspec est explicite : un clone --single-branch ou une configuration de fetch réduite mettent quand même à jour <remote>/<branch>.
 function fetchReference(remote, branch, cwd) {
   try {
-    git(['fetch', '--quiet', remote, branch], cwd);
+    git(['fetch', '--quiet', remote, `+refs/heads/${branch}:refs/remotes/${remote}/${branch}`], cwd);
     return 'online';
   } catch {
     try {
-      git(['ls-remote', '--heads', remote], cwd);
-      return 'missing';
-    } catch {
-      return 'offline';
+      git(['ls-remote', '--exit-code', '--heads', remote, branch], cwd);
+      return 'offline'; // la branche existe : le fetch a échoué pour une autre raison, on se rabat sur la dernière référence
+    } catch (error) {
+      return error.status === 2 ? 'missing' : 'offline'; // 2 : le remote a répondu, sans cette branche
     }
   }
 }
@@ -48,12 +51,18 @@ export function updateDefinitions({ cwd, f, io }) {
     throw refError(`${ref} introuvable : vérifie le remote du cours (git remote -v)`, status === 'offline' ? 2 : 1);
   }
   if (status === 'offline') io.out(`hors ligne : labs de la dernière référence récupérée (${ref}@${sha})`);
+  // Une référence sans cours effacerait toutes les définitions, et avec elles le .gitignore qui protège local/.
+  try {
+    git(['cat-file', '-e', `${ref}:${HOME}/formation.json`], cwd);
+  } catch {
+    throw refError(`${ref} n'a pas de ${HOME}/formation.json : ce n'est pas la branche du cours (vérifie reference dans ${HOME}/formation.json)`, 1);
+  }
 
-  // Ajouts, modifications et retraits, dans l'index et l'arbre ; local/, non suivi, n'est pas touché.
-  git(['restore', `--source=${ref}`, '--staged', '--worktree', '--', HOME], cwd);
-  const changed = git(['diff', '--cached', '--name-only', '--', HOME], cwd) !== '';
+  // Ajouts, modifications et retraits, dans l'index et l'arbre ; local/ n'est pas touché.
+  git(['restore', `--source=${ref}`, '--staged', '--worktree', '--', ...DEFINITIONS], cwd);
+  const changed = git(['diff', '--cached', '--name-only', '--', ...DEFINITIONS], cwd) !== '';
   // Un commit limité à .othila-lab/ : ce que l'apprenant a indexé ailleurs reste indexé, hors du commit.
-  if (changed) git(['commit', '--quiet', '--no-verify', '-m', `labs à jour (${branch}@${sha})`, '--', HOME], cwd);
+  if (changed) git(['commit', '--quiet', '--no-verify', '-m', `labs à jour (${branch}@${sha})`, '--', ...DEFINITIONS], cwd);
 
   const versions = packageVersions(ref, cwd);
   if (versions && versions.wanted !== versions.installed) {
