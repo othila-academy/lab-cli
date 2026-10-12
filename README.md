@@ -29,22 +29,39 @@ Le paquet est publié en public sur npmjs : les élèves l'installent avec le re
   "id": "graphql",
   "title": "GraphQL",
   "seances": [
-    { "title": "Séance 2 · Schéma avancé", "labs": ["interface-node"] },
-    { "title": "Séance 4 · Performances", "labs": ["n1"] }
+    { "title": "Les bases", "labs": ["hello", "schema"] },
+    { "title": "Performances", "labs": ["n1"] }
   ],
   "server": "packages/server-js/src/server.js",
   "graphql": "http://localhost:4000/graphql",
-  "endpoint": "https://lab.othila-academy.com"
+  "endpoint": "https://lab.othila-academy.com",
+  "reference": { "remote": "origin", "branch": "main" }
 }
 ```
 
-`id`, `title` et `seances` sont obligatoires ; `server`, `graphql` et `endpoint` prennent ces valeurs par défaut. L'ordre des séances et des labs est celui du catalogue, de la progression et de l'écran. Un lab présent dans `labs/` mais cité par aucune séance est un brouillon : `lab start`, `lab check` et `lab show` le jouent, `lab catalog` le signale (un brouillon illisible y figure avec son erreur, sans faire échouer le tableau), `--publish` ne l'envoie jamais.
+`id`, `title` et `seances` sont obligatoires ; `seances` peut être vide au départ (`[]`), une séance cite au moins un lab. `server`, `graphql`, `endpoint` et `reference` prennent ces valeurs par défaut ; `reference` dit d'où `lab update` tire les définitions des labs. L'ordre des séances et des labs est celui du catalogue, de la progression et de l'écran. Un lab présent dans `labs/` mais cité par aucune séance est un brouillon : `lab start`, `lab check` et `lab show` le jouent, `lab catalog` le signale (un brouillon illisible y figure avec son erreur, sans faire échouer le tableau), `--publish` ne l'envoie jamais.
 
 La racine du dépôt est le premier dossier, en remontant, qui contient `.othila-lab/formation.json` : `npx lab` marche aussi depuis `packages/server-js/`.
 
+### La chaîne de labs
+
+Le cours est une suite de labs sur une seule branche, `main`. Chaque lab part de la solution du précédent, et l'apprenant construit son projet lab après lab, sur son propre code.
+
+```
+main : base ── solution/hello ── solution/schema ── solution/n1 ── (commits de définitions)
+```
+
+- `base` : tag du starter, avec l'outillage (`.othila-lab/`, la devDependency `@othila-academy/lab`).
+- `solution/<lab>` : tag du commit de solution d'un lab. Le **départ** d'un lab est la solution du lab qui le précède dans l'ordre de `formation.json` ; le premier part de `base`.
+- Les tags ne figent que le code. Les définitions des labs (`.othila-lab/`) de la tête de `main` font foi : une retouche de consigne, de check ou d'indice, ou une montée du paquet, ne déplace aucun tag.
+
+L'apprenant crée sa branche une fois (`lab init`), reçoit les nouveaux labs avec `lab update`, et ne change de branche que pour rattraper son retard (`lab catchup <lab>`). L'auteur vérifie la chaîne et chaque lab avec `lab replay`. Le pas à pas : [guide d'écriture des labs](docs/ecrire-un-lab.md).
+
 Dans `package.json`, un raccourci : `"lab": "lab"`. L'apprenant lance alors `npm run lab -- check n1 observe`, ou `npx lab check n1 observe`. `lab join` vérifie que `.othila-lab/.gitignore` contient `local/` ; il ne touche pas au `.gitignore` du projet.
 
-**Depuis l'ancien format** (`othila-lab.config.json` à la racine) : déplacer `labs/` dans `.othila-lab/labs/`, écrire `formation.json` (l'ancien champ `formation` donne `id` et `title`, les `section` des labs donnent les séances), retirer `section` des `index.mjs`, supprimer `othila-lab.config.json`, retirer `.othila-lab/` du `.gitignore` du projet, puis reposer les tags des labs. Sur chaque machine où `lab join` avait servi, l'ancien état local reste à la racine de `.othila-lab/` et n'est plus ignoré : déplacer `state.json` dans `.othila-lab/local/` pour garder la progression, supprimer `config.json`, `outbox.jsonl` et `rejected.jsonl`, puis relancer `lab join`. Tant qu'il reste, `lab start` refuse et le dit.
+**Depuis l'ancien format** (`othila-lab.config.json` à la racine) : déplacer `labs/` dans `.othila-lab/labs/`, écrire `formation.json` (l'ancien champ `formation` donne `id` et `title`, les `section` des labs donnent les séances), retirer `section` des `index.mjs`, supprimer `othila-lab.config.json`, retirer `.othila-lab/` du `.gitignore` du projet, puis construire la chaîne (voir « Depuis la branche labs »). Sur chaque machine où `lab join` avait servi, l'ancien état local reste à la racine de `.othila-lab/` et n'est plus ignoré : déplacer `state.json` dans `.othila-lab/local/` pour garder la progression, supprimer `config.json`, `outbox.jsonl` et `rejected.jsonl`, puis relancer `lab join`. Tant qu'il reste, `lab start` refuse et le dit.
+
+**Depuis la branche `labs`** (0.7 et avant : une branche `labs`, des tags `lab-<id>-start` et `lab-<id>-solution`, une branche `lab-<id>` par apprenant et par lab) : `lab start` ne crée plus de branche et ne lit plus ces tags. Archiver l'ancien état (`git tag archive/labs labs`), puis sur `main` : y amener `.othila-lab/` avec `seances: []` et la devDependency 0.8, écrire le starter, poser `base` ; réécrire ensuite chaque lab en fin de chaîne (son dossier, son inscription dans `formation.json`, sa solution, le tag `solution/<lab>`, `lab replay --lab <lab>`). Les anciens tags `lab-*` peuvent alors être supprimés.
 
 ## Commandes
 
@@ -52,25 +69,30 @@ Dans `package.json`, un raccourci : `"lab": "lab"`. L'apprenant lance alors `npm
 |---|---|---|
 | `lab join [--terminal]` | rejoindre une session : le navigateur s'ouvre sur un formulaire (code de session, e-mail, prénom) et le terminal attend, en rappelant `npx lab join --terminal` pour un poste sans navigateur ; `--terminal`, ou les options `--session`, `--email`, `--name`, gardent la saisie au terminal | 0, 1 session inconnue, refus ou délai dépassé, 2 endpoint injoignable, 3 champs manquants |
 | `lab env` | Node, registre npm, endpoint, git, proxy | 0 si les trois premiers passent, 1 sinon |
-| `lab start <lab>` | branche `lab-<id>` depuis le tag `lab-<id>-start`, gabarit du check apprenant | 0, 1 refus |
+| `lab init [--branch NOM]` | une fois, au début du cours : crée ta branche (`my-project` par défaut) depuis `base` et affiche les labs ; refuse un arbre modifié, un `base` introuvable ou une branche existante | 0, 1 refus, 3 usage |
+| `lab start <lab>` | fiche du lab et gabarit du check apprenant s'il manque ; ne change pas de branche | 0, 1 ancien état local, 3 lab inconnu |
 | `lab check <lab> [étape]` | prédiction au premier passage, puis checks | 0, 1 échec, 2 serveur injoignable |
 | `lab hint <lab> <étape> [--yes]` | indice suivant, trois niveaux ; son coût en points est annoncé et confirmé (`--yes` pour ne pas demander) | 0 |
 | `lab submit <lab> <étape>` | explication en deux phrases | 0, 3 texte vide |
 | `lab show <lab> [étape]` | fiche du lab : contexte, objectifs, consigne de chaque étape, ce qui sera vérifié | 0, 3 lab inconnu |
 | `lab progress` | ton avancement et tes points sur cette machine, séance par séance : jamais lancé, en échec, vert, soumis, indices, points | 0 |
+| `lab update` | recopie `.othila-lab/` depuis la référence (`origin/main` par défaut) et le commite seul (`labs à jour (main@<sha>)`) : nouveaux labs, consignes à jour, labs retirés ; ton code, commité ou non, et `.othila-lab/local/` ne bougent pas. Hors ligne, prend la dernière référence récupérée et le dit. Annonce la commande `npm install` si le cours a changé de version du paquet | 0, 1 référence introuvable, 2 hors ligne sans référence locale |
+| `lab catchup <lab>` | rattraper son retard : nouvelle branche `catchup-<lab>` (suffixée `-2`, `-3`… si elle existe) depuis le départ du lab, puis `lab update` ; la branche quittée reste intacte | 0, 1 refus, 3 usage ou lab inconnu |
 | `lab leave [--force]` | quitte la session : envoie ce qui attend, puis efface le jeton de la machine ; `--force` abandonne ce qui ne part pas | 0, 2 évènements en attente hors ligne |
 | `lab catalog [--json] [--publish]` | tableau des labs, groupé par séance, brouillons à part, dans un terminal ; JSON pour créer la session si la sortie est redirigée ou avec `--json` ; avec `--publish` et `FORMATEUR_KEY`, publie le catalogue comme formation, pour créer des sessions depuis l'écran | 0, 1 clé refusée, 2 serveur injoignable, 3 clé ou manifeste absent |
-| `lab replay [--lab ID] [--session CODE]` | formateur : rejoue un lab sur ses tags start et solution ; avec `--session CODE` et `FORMATEUR_KEY`, pousse le résultat dans une session simulée, vérifiée avant le rejeu | 0, 1 écart, rejet ou session réelle, 2 serveur othila-lab injoignable, 3 usage |
+| `lab replay [--lab ID] [--keep] [--session CODE]` | formateur : vérifie la chaîne (tags présents, chacun ancêtre du suivant), puis rejoue chaque lab sur son départ et sa solution, avec les définitions et la commande d'aujourd'hui ; `--keep` garde les worktrees ; avec `--session CODE` et `FORMATEUR_KEY`, pousse le résultat dans une session simulée, vérifiée avant le rejeu | 0, 1 écart, rejet ou session réelle, 2 serveur othila-lab injoignable, 3 usage |
 
 Options utiles : `--url` (serveur de l'apprenant), `--answer` (prédiction sans question), `--text` (explication), `--json` (sortie machine : aucune question posée, la prédiction n'est prise que via `--answer`), `--no-report`.
 
 ## Le parcours d'une étape
 
-`lab check` jusqu'au vert, puis `lab submit` : c'est la soumission qui termine l'étape. Après un check tout vert, la commande affiche la soumission à faire ; après une soumission, l'étape suivante, ou à la fin du lab le commit à faire et le catalogue. Les labs ne s'enchaînent pas : chacun repart de son tag de départ, donc on commite son travail avant `lab start` d'un autre lab, et on relance son serveur.
+Une fois au début du cours : `git clone`, `npm install`, `npx lab join`, `npx lab init`. Puis, pour chaque lab : `npx lab start <lab>` pour la fiche, et pour chaque étape `lab check` jusqu'au vert, puis `lab submit` : c'est la soumission qui termine l'étape. Après un check tout vert, la commande affiche la soumission à faire ; après une soumission, l'étape suivante, ou à la fin du lab le commit à faire et le catalogue.
+
+Les labs s'enchaînent sur ton code : le lab suivant part de là où tu as fini le précédent. Quand le formateur publie de nouveaux labs, `npx lab update`. Si tu es trop loin du départ d'un lab (absence, projet bloqué), `npx lab catchup <lab>` te donne une branche sur son départ de référence ; ta branche reste là.
 
 ## Écrire un lab
 
-Un dossier `.othila-lab/labs/<id>/` avec `index.mjs` et un module par étape. `lab start` et `lab show` affichent la fiche tirée de ces champs.
+Un dossier `.othila-lab/labs/<id>/` avec `index.mjs` et un module par étape, inscrit dans `formation.json`, et sa solution taguée `solution/<id>` sur `main`. `lab start` et `lab show` affichent la fiche tirée de ces champs.
 
 ```js
 // .othila-lab/labs/<id>/index.mjs
@@ -97,7 +119,7 @@ export const points = 200;   // facultatif, valeur de l'étape : entier de 1 à 
 
 Une étape est acquise à la première explication soumise au vert ; chaque indice révélé avant réduit ses points de 10, 25 puis 50 % (voir [`points/regle.md`](points/regle.md)).
 
-L'objectif à atteindre d'une étape est la liste des libellés de ses checks : la fiche les affiche sous « Ce qui sera vérifié ». Les messages d'échec nomment le geste de diagnostic, jamais la réponse. `passesOnStart: true` marque un check qui passe déjà sur l'état de départ.
+L'objectif à atteindre d'une étape est la liste des libellés de ses checks : la fiche les affiche sous « Ce qui sera vérifié ». Les messages d'échec nomment le geste de diagnostic, jamais la réponse. `passesOnStart: true` marque un check qui passe déjà sur l'état de départ (la solution du lab précédent).
 
 ## Variables d'environnement
 
@@ -131,15 +153,16 @@ Seul un administrateur du dépôt peut poser un tag `v*`. Le workflow `Publier @
 
 **2. Vérifier**, dans n'importe quel projet qui l'installe : `npm audit signatures` contrôle la signature du registre et l'attestation de provenance.
 
-**3. La faire entrer dans un cours**, sur la branche `labs` :
+**3. La faire entrer dans un cours**, sur `main` :
 
 ```bash
-npm install --save-dev --save-exact @othila-academy/lab@0.7.1
+npm install --save-dev --save-exact @othila-academy/lab@0.8.0
+npx lab replay
 git add package.json package-lock.json
-git commit -m "chore: @othila-academy/lab 0.7.1"
+git commit -m "chore: @othila-academy/lab 0.8.0"
 ```
 
-Une version exacte : le lockfile garde son empreinte d'intégrité, et chaque tag de lab fige la version de l'outil avec laquelle il se joue. Puis reposer les tags `lab-<id>-start` et `lab-<id>-solution`, et lancer `npx lab replay` : voir [Mettre à jour un lab](docs/ecrire-un-lab.md#mettre-à-jour-un-lab).
+Une version exacte : le lockfile garde son empreinte d'intégrité. Aucun tag ne bouge : le rejeu joue chaque état avec la commande installée sur `main`. Les apprenants voient la nouvelle version annoncée par `npx lab update`, avec la commande `npm install` à lancer.
 
 **Historique** : jusqu'à la 0.6.1, le paquet était publié sur un registre privé et les cours l'embarquaient en archive dans `.othila-lab/vendor/` ; les 0.6.2 et 0.6.3 ont été publiées sur npmjs sans provenance. Un cours qui embarque encore une archive continue de fonctionner jusqu'à sa migration vers la dépendance npm.
 
