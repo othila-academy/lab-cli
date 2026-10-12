@@ -2,7 +2,7 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } fr
 import path from 'node:path';
 
 // Un seul domaine pour la remontée. Le manifeste peut le surcharger, l'environnement aussi.
-export const DEFAULT_ENDPOINT = 'https://lab.othila.academy';
+export const DEFAULT_ENDPOINT = 'https://lab.othila-academy.com';
 // Tout ce qu'othila-lab pose dans un dépôt de cours vit dans ce dossier.
 export const HOME = '.othila-lab';
 export const MANIFEST = 'formation.json';
