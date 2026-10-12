@@ -12,6 +12,7 @@ export const USAGE = `othila-lab · commande lab
   lab hint <lab> <étape> [--yes]                                            révéler l'indice suivant (son coût est annoncé)
   lab submit <lab> <étape> [--text EXPLICATION]                             soumettre une explication
   lab progress                                                              ton avancement et tes points, séance par séance
+  lab update                                                                récupérer les nouveaux labs et les consignes à jour
   lab leave [--force]                                                       quitter la session et effacer le jeton de la machine
   lab catalog [--json] [--publish] [--endpoint URL]                       lister les labs ; --publish les publie comme formation (formateur)
   lab replay [--lab ID] [--keep] [--session CODE] [--endpoint URL]          rejouer les labs sur leurs tags (formateur)
@@ -31,6 +32,7 @@ const COMMANDS = {
   show: () => import('./commands/show.mjs'),
   progress: () => import('./commands/progress.mjs'),
   leave: () => import('./commands/leave.mjs'),
+  update: () => import('./commands/update.mjs'),
   replay: () => import('./commands/replay.mjs')
 };
 
