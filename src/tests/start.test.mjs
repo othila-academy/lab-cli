@@ -1,14 +1,14 @@
 import { test, before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { main } from '../cli.mjs';
-import { branchExists, describe, isClean, tagExists } from '../git.mjs';
+import { isClean } from '../git.mjs';
 import { captureIo } from '../test-helpers/io.mjs';
 
-// Un dépôt git temporaire avec un lab « demo » qui déclare un gabarit, et le tag lab-demo-start.
+// Un dépôt git temporaire avec un lab « demo » qui déclare un gabarit ; le tag lab-demo-start, de l'ancien modèle, n'est plus lu.
 let repo;
 let originalCwd;
 const git = (...args) => execFileSync('git', args, { cwd: repo, stdio: 'pipe' }).toString().trim();
@@ -32,37 +32,37 @@ beforeEach(() => {
   process.chdir(repo);
 });
 
-test('crée la branche depuis le tag et copie le gabarit', async () => {
+test('affiche la fiche et copie le gabarit, sans changer de branche ni chercher de tag', async () => {
+  git('tag', '-d', 'lab-demo-start');
+  const head = git('rev-parse', 'HEAD');
   const io = captureIo();
   assert.equal(await main(['start', 'demo'], io), 0);
-  assert.equal(git('branch', '--show-current'), 'lab-demo');
-  assert.ok(existsSync(path.join(repo, 'packages', 'server-js', 'test', 'demo-mine.check.mjs')));
-  assert.equal(readFileSync(path.join(repo, 'packages', 'server-js', 'test', 'demo-mine.check.mjs'), 'utf8'), '// gabarit\nexport const checks = [];\n');
+  assert.equal(git('branch', '--show-current'), 'labs');
+  assert.equal(git('rev-parse', 'HEAD'), head);
+  assert.equal(git('branch', '--list').split('\n').length, 1);
+  const mine = path.join(repo, 'packages', 'server-js', 'test', 'demo-mine.check.mjs');
+  assert.equal(readFileSync(mine, 'utf8'), '// gabarit\nexport const checks = [];\n');
   assert.match(io.lines.join('\n'), /packages\/server-js\/test\/demo-mine\.check\.mjs créé depuis le gabarit/);
   assert.match(io.lines.join('\n'), /lab check demo one/);
-  assert.equal(isClean(), false, 'le check de l’apprenant est un nouveau fichier non suivi');
-  assert.match(describe(), /^lab-demo-start/);
+  assert.doesNotMatch(io.lines.join('\n'), /branche/);
 });
 
-test("refuse si la branche existe, si le tag manque, ou si l'arbre est modifié", async () => {
-  git('branch', 'lab-demo');
-  const io1 = captureIo();
-  assert.equal(await main(['start', 'demo'], io1), 1);
-  assert.match(io1.errors.join('\n'), /existe déjà/);
-  git('branch', '-D', 'lab-demo');
-  git('tag', '-d', 'lab-demo-start');
-  const io2 = captureIo();
-  assert.equal(await main(['start', 'demo'], io2), 1);
-  assert.match(io2.errors.join('\n'), /tag lab-demo-start introuvable/);
-  git('tag', 'lab-demo-start');
-  writeFileSync(path.join(repo, '.othila-lab', 'labs', 'demo', 'one.mjs'), '// modifié\n');
-  const io3 = captureIo();
-  assert.equal(await main(['start', 'demo'], io3), 1);
-  assert.match(io3.errors.join('\n'), /modifications/);
-  assert.match(io3.errors.join('\n'), /commite ton travail sur labs : git add -A && git commit/);
-  assert.equal(branchExists('lab-demo'), false);
-  assert.equal(tagExists('lab-demo-start'), true);
-  assert.equal(tagExists('absent'), false);
+test('le gabarit déjà copié n’est pas écrasé ; un arbre modifié ne bloque pas', async () => {
+  const mine = path.join(repo, 'packages', 'server-js', 'test', 'demo-mine.check.mjs');
+  mkdirSync(path.dirname(mine), { recursive: true });
+  writeFileSync(mine, '// mon check\n');
+  writeFileSync(path.join(repo, '.othila-lab', 'labs', 'demo', 'one.mjs'), "export const checks = [{ id: 'a', label: 'a', run: async () => {} }];\n// modifié\n");
+  const io = captureIo();
+  assert.equal(await main(['start', 'demo'], io), 0);
+  assert.equal(readFileSync(mine, 'utf8'), '// mon check\n');
+  assert.doesNotMatch(io.lines.join('\n'), /créé depuis le gabarit/);
+  assert.equal(isClean(), false);
+});
+
+test('lab inconnu : code 3 et le conseil npx lab update', async () => {
+  const io = captureIo();
+  assert.equal(await main(['start', 'nouveau'], io), 3);
+  assert.match(io.errors.join('\n'), /lab inconnu : nouveau \(disponibles : demo\) ; npx lab update pour récupérer les nouveaux labs/);
 });
 
 test("l'ancien état local, à la racine de .othila-lab/, bloque lab start sans conseiller de le commiter", async () => {
@@ -75,5 +75,5 @@ test("l'ancien état local, à la racine de .othila-lab/, bloque lab start sans 
   assert.match(err, /ancien état local : \.othila-lab\/config\.json, \.othila-lab\/state\.json/);
   assert.match(err, /mv \.othila-lab\/state\.json \.othila-lab\/local\//);
   assert.doesNotMatch(err, /git add/);
-  assert.equal(branchExists('lab-demo'), false);
+  assert.equal(git('branch', '--show-current'), 'labs');
 });

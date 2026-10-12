@@ -42,7 +42,7 @@ export async function loadLab(id, f = formation()) {
   const index = path.join(labPath, 'index.mjs');
   if (!SLUG.test(id) || !existsSync(index)) {
     const known = [...listLabs(f).map((l) => l.id), ...listDrafts(f)];
-    throw new Error(`lab inconnu : ${id} (disponibles : ${known.join(', ') || 'aucun'})`);
+    throw new Error(`lab inconnu : ${id} (disponibles : ${known.join(', ') || 'aucun'}) ; npx lab update pour récupérer les nouveaux labs`);
   }
   const mod = await load(index);
   if (!mod.title || !Array.isArray(mod.steps) || mod.steps.length === 0) throw new Error(`${index} doit exporter title et steps`);

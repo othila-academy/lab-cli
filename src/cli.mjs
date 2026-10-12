@@ -6,7 +6,7 @@ export const USAGE = `othila-lab · commande lab
   lab join [--terminal] [--session CODE] [--email E] [--name PRÉNOM] [--endpoint URL]   rejoindre une session (navigateur par défaut)
   lab env                                                                   vérifier l'environnement
   lab init [--branch NOM]                                                   créer ta branche de projet depuis le départ du cours
-  lab start <lab>                                                           démarrer un lab depuis son tag, avec sa fiche
+  lab start <lab>                                                           afficher la fiche d'un lab et préparer son gabarit
   lab show <lab> [étape]                                                    afficher la fiche : contexte, objectifs, consignes
   lab check <lab> [étape] [--url URL] [--answer RÉPONSE] [--json] [--no-report]
   lab hint <lab> <étape> [--yes]                                            révéler l'indice suivant (son coût est annoncé)

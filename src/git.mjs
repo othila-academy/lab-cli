@@ -32,7 +32,6 @@ const refExists = (ref, cwd) => {
 export const branchExists = (branch, cwd = process.cwd()) => refExists(`refs/heads/${branch}`, cwd);
 export const tagExists = (tag, cwd = process.cwd()) => refExists(`refs/tags/${tag}`, cwd);
 
-export const startBranch = ({ tag, branch, cwd = process.cwd() }) => git(['checkout', '-b', branch, tag], cwd);
 export const checkoutNewBranch = (branch, ref, cwd = process.cwd()) => git(['checkout', '-q', '-b', branch, ref], cwd);
 
 // Vrai si ancestor précède descendant dans l'historique : git répond par son code de sortie, sans rien écrire.
