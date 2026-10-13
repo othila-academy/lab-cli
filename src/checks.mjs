@@ -1,15 +1,28 @@
+import { NO_SERVER } from './config.mjs';
+import { subscribe as open, wsUrlOf } from './subscription/client.mjs';
+
 // Joue les checks d'une étape dans l'ordre. Un check qui lève est un échec, quoi qu'il lève.
+// Chaque check reçoit son propre subscribe : ses abonnements sont fermés quand il se termine.
 export async function runChecks(checks, ctx) {
   const started = Date.now();
   const passed = [];
   const failed = [];
   for (const check of checks) {
+    const subscriptions = [];
+    const subscribe = async (query, options) => {
+      if (!ctx.url) throw new Error(NO_SERVER);
+      const sub = await open(wsUrlOf(ctx.url), query, options);
+      subscriptions.push(sub);
+      return sub;
+    };
     try {
-      await check.run(ctx);
+      await check.run({ ...ctx, subscribe });
       passed.push(check.id);
     } catch (error) {
       const message = error && typeof error === 'object' && 'message' in error ? String(error.message) : String(error);
       failed.push({ id: check.id, label: check.label, message: message.slice(0, 1000) });
+    } finally {
+      for (const sub of subscriptions) sub.close();
     }
   }
   return { passed, failed, durationMs: Date.now() - started };
