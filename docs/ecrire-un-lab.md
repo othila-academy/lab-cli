@@ -277,7 +277,7 @@ export const checks = [
 
 ```jsx
 // .othila-lab/labs/client-apollo/tests/brancher.test.jsx
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { ApolloProvider } from '@apollo/client/react';
 import { expect, test } from 'vitest';
 import { client } from '@client/src/apollo.js';
@@ -293,7 +293,7 @@ test('liste-affiche', async () => {
   const { data } = await res.json();
   render(<ApolloProvider client={client}><EventsList /></ApolloProvider>);
   for (const { title } of data.events) {
-    expect(await screen.findByText(title, { exact: false }), `Le titre « ${title} » n'apparaît pas : le composant lit-il data.events ?`).toBeTruthy();
+    await waitFor(() => expect(screen.queryByText(title, { exact: false }), `Le titre « ${title} » n'apparaît pas : le composant lit-il data.events ?`).not.toBeNull());
   }
 });
 ```
@@ -301,9 +301,11 @@ test('liste-affiche', async () => {
 **Les règles d'écriture.**
 
 - **Toujours passer un message à `expect`** : `expect(x, 'message pour l'apprenant')`. L'apprenant ne lit que ce message ; sans lui, il lit l'anglais de Testing Library.
+- **Pas de `findBy*` ni de `getBy*` dans un test** : ils échouent avant `expect`, et l'apprenant lit l'anglais de Testing Library. Utiliser `queryBy*` dans `expect`, et `waitFor` pour attendre un rendu asynchrone.
+- **Un message sur une seule ligne** : seule la première ligne de l'échec est gardée.
 - **Vérifier les exports attendus explicitement.** Sous Vite, un export nommé absent vaut `undefined`, sans erreur au chargement.
 - **Annoncer dans la consigne le chemin et les exports que le test importe** (`src/EventsList.jsx`, export par défaut) : c'est un contrat avec l'apprenant. C'est la seule exception à la règle « observer un comportement, jamais le code » : le test rend le composant de l'apprenant et observe le DOM.
-- **L'outillage de test est au cours.** Vitest, jsdom et `@testing-library/react` sont des devDependencies du client (ou de la racine, en workspaces). Avec Vitest 5, Node ≥ 22.12.
+- **L'outillage de test est au cours.** Vitest, jsdom et `@testing-library/react` sont des devDependencies du client. Les tests du lab et la préparation vivent dans `.othila-lab/` et résolvent leurs imports depuis la racine du dépôt : le client est donc à la racine, ou un workspace du cours (dépendances hissées à la racine). Vitest 5 et jsdom 30 demandent Node 22.22, 24.15 ou plus récent ; `lab check` le vérifie avant de lancer Vitest.
 - **Monter `lab` dans `formation.json`** (`"lab": "0.9.0"`) dès qu'un lab utilise `componentTest` : un apprenant resté sur une version plus ancienne lit alors quelle version installer.
 
 **Ce que voit l'apprenant.**
@@ -316,9 +318,11 @@ test('liste-affiche', async () => {
 | `Failed to resolve import "@client/<chemin>"` | « packages/client-react/<chemin> introuvable : as-tu créé ce fichier ? » |
 | `Failed to resolve import "./Foo.jsx" from "src/App.jsx"` | « packages/client-react/src/Foo.jsx introuvable (importé par packages/client-react/src/App.jsx) » |
 | `Failed to resolve import "<paquet>"` | « le paquet <paquet> n'est pas installé pour le client (packages/client-react) » |
+| `Failed to resolve import "<paquet>"` depuis un test du lab ou la préparation | « le paquet <paquet> est introuvable depuis .othila-lab/… : installe-le en dépendance de développement du client, qui doit être un workspace du cours (ou installe-le à la racine du dépôt) » |
+| un hook (`beforeAll`, préparation) en échec | la cause du fichier, au lieu de « n'a pas été joué » |
 | une erreur de compilation | « packages/client-react/src/X.jsx ne compile pas (ligne N) : <raison> » |
 
-Quand les tests ne peuvent pas tourner, chaque check de composant de l'étape échoue avec le même message : pas de `client` dans le manifeste, dossier du client absent (« packages/client-react n'existe pas : as-tu créé le client ? »), Vitest introuvable, plus de 60 s d'exécution.
+Quand les tests ne peuvent pas tourner, chaque check de composant de l'étape échoue avec le même message : pas de `client` dans le manifeste, dossier du client absent (« packages/client-react n'existe pas : as-tu créé le client ? »), Vitest introuvable, version de Node refusée par Vitest ou jsdom, plus de 60 s d'exécution.
 
 **Au rejeu**, `npm ci` installe le client s'il est un workspace du cours. Au départ d'un lab qui crée le client, le client absent fait échouer ses checks de composants, comme attendu ; sur la solution, ils passent contre le serveur que démarre le rejeu.
 
@@ -405,8 +409,9 @@ Le retirer de `formation.json` et supprimer son dossier `.othila-lab/labs/<id>/`
 | « hors ligne : labs de la dernière référence récupérée » | `lab update` n'a pas joint le remote : les définitions viennent du dernier fetch ; relancer une fois en ligne |
 | `lab check` sort en code 2 | le serveur de l'apprenant ne répond pas : `npm run start:server-js`, ou préciser `--url` |
 | `Vitest n'est pas installé pour …` | installer Vitest, jsdom et `@testing-library/react` en devDependencies du client |
+| `le paquet X est introuvable depuis .othila-lab/…` | le client n'est ni à la racine ni un workspace du cours : ses dépendances ne sont pas visibles depuis `.othila-lab/` ; en faire un workspace (`"workspaces": ["packages/*"]`), ou installer le paquet à la racine |
 | `test « x » introuvable dans tests/….test.jsx` | le titre du test et le `test` du check (ou son `id`) diffèrent |
-| Vitest refuse de démarrer (version de Node) | Vitest 5 et jsdom 30 demandent Node ≥ 22.12 |
+| `vitest … demande Node …` ou `jsdom … demande Node …` | changer de version de Node (Vitest 5 et jsdom 30 : Node 22.22, 24.15 ou plus récent) |
 | `ce cours demande @othila-academy/lab X ou plus` | installer la version indiquée : `npm install --save-dev --save-exact @othila-academy/lab@X` |
 | `cette formation n'a pas de serveur GraphQL` | un check appelle `gql` dans une formation sans `server` : déclarer `server` dans `formation.json`, ou retirer l'appel |
 | « hors ligne : N évènement(s) conservé(s) » | le serveur othila-lab est injoignable ; tout repart à la commande suivante |

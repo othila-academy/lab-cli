@@ -116,17 +116,38 @@ function validate(raw, dir, root) {
 }
 
 // Le manifeste de la formation, validé, ou null si le dépôt n'en a pas.
-export function readFormation(root = projectRoot()) {
-  const file = path.join(root, HOME, MANIFEST);
-  if (!existsSync(file)) return null;
-  let raw;
-  try {
-    raw = JSON.parse(readFileSync(file, 'utf8').replace(/^﻿/, '')); // BOM des éditeurs Windows
-  } catch (error) {
-    throw new Error(`${HOME}/${MANIFEST} illisible : ${error.message}`);
+// checkVersion : la version exigée (lab) passe avant la validation, car un manifeste écrit pour une version
+// future peut avoir une forme que celle-ci refuse ; l'apprenant lit alors quelle version installer.
+export function readFormation(root = projectRoot(), { checkVersion = false } = {}) {
+  const raw = readRaw(root);
+  if (raw === null) return null;
+  if (checkVersion) {
+    const problem = versionProblem({ lab: requiredVersion(raw) });
+    if (problem) throw new Error(problem);
   }
   const dir = labsDir(root);
   return { ...validate(raw, dir, root), root, labsDir: dir };
+}
+
+function readRaw(root) {
+  const file = path.join(root, HOME, MANIFEST);
+  if (!existsSync(file)) return null;
+  try {
+    return JSON.parse(readFileSync(file, 'utf8').replace(/^﻿/, '')); // BOM des éditeurs Windows
+  } catch (error) {
+    throw new Error(`${HOME}/${MANIFEST} illisible : ${error.message}`);
+  }
+}
+
+const requiredVersion = (raw) => (raw && typeof raw.lab === 'string' && VERSION.test(raw.lab) ? raw.lab : null);
+
+// Pour lab update : le message de version du manifeste tel qu'il est sur le disque, sans le valider ; null sinon.
+export function versionProblemAt(root) {
+  try {
+    return versionProblem({ lab: requiredVersion(readRaw(root)) });
+  } catch {
+    return null;
+  }
 }
 
 // La version de ce paquet, comparée au champ lab du manifeste (x.y.z ; une préversion compte comme sa version).
@@ -148,12 +169,8 @@ export function versionProblem(f, installed = PACKAGE_VERSION) {
 
 // Le manifeste, obligatoire : les commandes qui touchent aux labs en ont besoin. Il peut exiger une version de lab-cli.
 export function formation(root = projectRoot(), { checkVersion = true } = {}) {
-  const found = readFormation(root);
-  if (found) {
-    const problem = checkVersion ? versionProblem(found) : null;
-    if (problem) throw new Error(problem);
-    return found;
-  }
+  const found = readFormation(root, { checkVersion });
+  if (found) return found;
   if (findUp(root, LEGACY_FILE)) {
     throw new Error(
       `ce dépôt utilise l'ancienne configuration ${LEGACY_FILE} : déplace labs/ dans ${HOME}/labs/, écris ${HOME}/${MANIFEST} (id, title, seances), ` +

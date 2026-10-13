@@ -32,10 +32,10 @@ writeFileSync(out, JSON.stringify({ success: false, testResults }));
 process.exit(1);
 `;
 
-export function installFakeVitest(clientDir, plan = { files: {} }) {
+export function installFakeVitest(clientDir, plan = { files: {} }, { engines } = {}) {
   const dir = path.join(clientDir, 'node_modules', 'vitest');
   mkdirSync(dir, { recursive: true });
-  writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: 'vitest', version: '0.0.0-faux', type: 'module', bin: { vitest: 'vitest.mjs' }, exports: { './package.json': './package.json' } }));
+  writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: 'vitest', version: '0.0.0-faux', type: 'module', bin: { vitest: 'vitest.mjs' }, exports: { './package.json': './package.json' }, ...(engines ? { engines: { node: engines } } : {}) }));
   writeFileSync(path.join(dir, 'vitest.mjs'), SCRIPT);
   const setPlan = (next) => writeFileSync(path.join(dir, 'plan.json'), JSON.stringify(next));
   setPlan(plan);

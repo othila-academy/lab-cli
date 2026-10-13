@@ -1,4 +1,4 @@
-import { formation, versionProblem } from '../config.mjs';
+import { formation, versionProblemAt } from '../config.mjs';
 import { updateDefinitions } from '../update.mjs';
 
 // Les nouveaux labs et les définitions à jour, depuis la référence du cours : seul .othila-lab/ change.
@@ -8,7 +8,7 @@ export async function run({ io }) {
   try {
     const { changed } = updateDefinitions({ cwd: f.root, f, io });
     io.out(changed ? 'labs mis à jour : npx lab catalog pour les voir' : 'labs déjà à jour');
-    const problem = versionProblem(formation(f.root, { checkVersion: false }));
+    const problem = versionProblemAt(f.root);
     if (problem) io.out(`attention : ${problem}`);
     return 0;
   } catch (error) {
