@@ -155,7 +155,7 @@ git tag v0.7.2
 git push origin v0.7.2
 ```
 
-Seul un administrateur du dépôt peut poser un tag `v*`. Le workflow `Publier @othila-academy/lab` rejoue d'abord les tests sur Node 20 et Node 24 ; la publication n'est demandée qu'ensuite, dans l'environnement GitHub `npm`, réservé à ces tags et soumis à validation manuelle. Elle vérifie que le tag correspond à la version de `package.json` et que le commit tagué est sur `main`, installe sans exécuter aucun script, vérifie que le paquet ne contient que `bin/`, `src/` (sans tests ni fixtures), `contrat/`, `points/`, `README.md`, `LICENSE` et `package.json`, puis publie avec `--provenance`. Si la version est déjà sur npmjs, il le signale et s'arrête sans erreur : on peut le relancer après une panne.
+Seul un administrateur du dépôt peut poser un tag `v*`. Le workflow `Publier @othila-academy/lab` rejoue d'abord les tests sur Node 22 et Node 24 ; la publication n'est demandée qu'ensuite, dans l'environnement GitHub `npm`, réservé à ces tags et soumis à validation manuelle. Elle vérifie que le tag correspond à la version de `package.json` et que le commit tagué est sur `main`, installe sans exécuter aucun script, vérifie que le paquet ne contient que `bin/`, `src/` (sans tests ni fixtures), `contrat/`, `points/`, `README.md`, `LICENSE` et `package.json`, puis publie avec `--provenance`. Si la version est déjà sur npmjs, il le signale et s'arrête sans erreur : on peut le relancer après une panne.
 
 **2. Vérifier**, dans n'importe quel projet qui l'installe : `npm audit signatures` contrôle la signature du registre et l'attestation de provenance.
 
