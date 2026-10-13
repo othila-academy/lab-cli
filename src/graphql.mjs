@@ -22,6 +22,10 @@ export function expectErrorCode(result, code, label) {
   if (got !== code) throw new Error(`${label} : code ${code} attendu, reçu ${got ?? 'aucune erreur'} (${JSON.stringify(result.errors ?? result.data)})`);
 }
 
+// Le serveur de l'apprenant ne répond pas : où le lancer, ou comment désigner une autre adresse.
+export const unreachableMessage = (url) =>
+  `injoignable sur ${url} : lance \`npm run start:server-js\` dans un autre terminal, ou précise --url`;
+
 export async function loginAs(gqlFn, email, password = 'password123') {
   const data = expectData(
     await gqlFn('mutation Login($email: String!, $password: String!) { login(email: $email, password: $password) { token user { id name role } } }', { variables: { email, password } }),
