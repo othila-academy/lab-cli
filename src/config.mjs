@@ -129,10 +129,31 @@ export function readFormation(root = projectRoot()) {
   return { ...validate(raw, dir, root), root, labsDir: dir };
 }
 
-// Le manifeste, obligatoire : les commandes qui touchent aux labs en ont besoin.
-export function formation(root = projectRoot()) {
+// La version de ce paquet, comparée au champ lab du manifeste (x.y.z ; une préversion compte comme sa version).
+export const PACKAGE_VERSION = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
+const numbers = (version) => String(version).match(/^(\d+)\.(\d+)\.(\d+)/).slice(1).map(Number);
+
+export function olderThan(installed, wanted) {
+  const a = numbers(installed);
+  const b = numbers(wanted);
+  for (let i = 0; i < 3; i++) if (a[i] !== b[i]) return a[i] < b[i];
+  return false;
+}
+
+// Le message à donner quand le cours exige une version plus récente que celle installée ; null sinon.
+export function versionProblem(f, installed = PACKAGE_VERSION) {
+  if (!f.lab || !olderThan(installed, f.lab)) return null;
+  return `ce cours demande @othila-academy/lab ${f.lab} ou plus (installé : ${installed}) : npm install --save-dev --save-exact @othila-academy/lab@${f.lab}`;
+}
+
+// Le manifeste, obligatoire : les commandes qui touchent aux labs en ont besoin. Il peut exiger une version de lab-cli.
+export function formation(root = projectRoot(), { checkVersion = true } = {}) {
   const found = readFormation(root);
-  if (found) return found;
+  if (found) {
+    const problem = checkVersion ? versionProblem(found) : null;
+    if (problem) throw new Error(problem);
+    return found;
+  }
   if (findUp(root, LEGACY_FILE)) {
     throw new Error(
       `ce dépôt utilise l'ancienne configuration ${LEGACY_FILE} : déplace labs/ dans ${HOME}/labs/, écris ${HOME}/${MANIFEST} (id, title, seances), ` +
