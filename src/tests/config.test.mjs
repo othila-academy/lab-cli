@@ -37,7 +37,9 @@ test('formation.json : champs lus, défauts appliqués, clés inconnues ignorée
   assert.equal(f.id, 'cours-test');
   assert.equal(f.title, 'Cours de test');
   assert.deepEqual(f.seances, [{ title: 'Séance 1', labs: ['b'] }, { title: 'Séance 2', labs: ['a'] }]);
-  assert.equal(f.server, 'packages/server-js/src/server.js');
+  assert.equal(f.server, null);
+  assert.equal(f.client, null);
+  assert.equal(f.lab, null);
   assert.equal(f.graphql, 'http://localhost:4000/graphql');
   assert.equal(f.endpoint, DEFAULT_ENDPOINT);
   assert.equal(f.root, course.root);
@@ -83,7 +85,15 @@ test('formation.json : chaque erreur nomme le fichier et le champ', () => {
     [{ id: 'x', title: 'T', seances: [{ title: 'S', labs: ['A'] }] }, /seances\[0\]\.labs\[0\] : identifiant de lab attendu/],
     [{ id: 'x', title: 'T', seances: [{ title: 'S', labs: ['a'] }, { title: 'S2', labs: ['a'] }] }, /seances\[1\]\.labs\[0\] : a est déjà cité/],
     [{ id: 'x', title: 'T', seances: [{ title: 'S', labs: ['absent'] }] }, /seances\[0\]\.labs\[0\] : absent n'a pas de dossier \.othila-lab\/labs\/absent\/ avec index\.mjs/],
-    [{ id: 'x', title: 'T', seances, server: 3 }, /server : texte non vide attendu/]
+    [{ id: 'x', title: 'T', seances, server: 3 }, /server : texte non vide attendu/],
+    [{ id: 'x', title: 'T', seances, client: 'packages/client' }, /formation\.json : client : objet attendu/],
+    [{ id: 'x', title: 'T', seances, client: {} }, /client\.dir : texte non vide attendu/],
+    [{ id: 'x', title: 'T', seances, client: { dir: '../ailleurs' } }, /client\.dir : chemin relatif à la racine du dépôt, qui y reste/],
+    [{ id: 'x', title: 'T', seances, client: { dir: '/abs' } }, /client\.dir : chemin relatif/],
+    [{ id: 'x', title: 'T', seances, client: { dir: 'c', setup: '' } }, /client\.setup : texte non vide attendu/],
+    [{ id: 'x', title: 'T', seances, client: { dir: 'c', setup: '../s.js' } }, /client\.setup : chemin relatif/],
+    [{ id: 'x', title: 'T', seances, lab: '0.9' }, /formation\.json : lab : version x\.y\.z attendue/],
+    [{ id: 'x', title: 'T', seances, lab: 9 }, /lab : version x\.y\.z attendue/]
   ];
   for (const [manifest, error] of cases) {
     course.write(manifest);
@@ -177,4 +187,26 @@ test('depuis un sous-dossier du cours, la racine est celle du manifeste ; un .ot
     process.chdir(previousCwd);
     if (previousDir !== undefined) process.env.OTHILA_LAB_DIR = previousDir;
   }
+});
+
+test('formation.json : client lu, chemins absolus calculés, dossier pas encore créé accepté', () => {
+  course = makeCourse({ labs: { a: tinyLab() }, manifest: { client: { dir: 'packages/client-react', setup: '.othila-lab/shared/client-setup.js' }, lab: '0.9.0' } });
+  const f = formation(course.root);
+  assert.deepEqual(f.client, {
+    dir: 'packages/client-react',
+    path: path.join(course.root, 'packages', 'client-react'),
+    setup: '.othila-lab/shared/client-setup.js',
+    setupPath: path.join(course.root, '.othila-lab', 'shared', 'client-setup.js')
+  });
+  assert.equal(f.lab, '0.9.0');
+  course.write({ id: 'x', title: 'T', seances: [], client: { dir: '.' } });
+  assert.deepEqual(formation(course.root).client, { dir: '.', path: course.root, setup: null, setupPath: null });
+});
+
+test('sans server dans formation.json : serverScript() vaut null, sauf OTHILA_LAB_SERVER_SCRIPT', () => {
+  course = makeCourse({ labs: { a: tinyLab() } });
+  process.env.OTHILA_LAB_ROOT = course.root;
+  assert.equal(serverScript(), null);
+  process.env.OTHILA_LAB_SERVER_SCRIPT = 'x/server.js';
+  assert.equal(serverScript(), 'x/server.js');
 });

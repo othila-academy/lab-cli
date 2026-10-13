@@ -1,5 +1,6 @@
 {
   "id": "demo",
   "title": "Cours de démonstration",
+  "server": "server.mjs",
   "seances": [{ "title": "Séance 0 · Démonstration", "labs": ["demo"] }]
 }

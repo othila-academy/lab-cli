@@ -10,7 +10,11 @@ export const LEGACY_FILE = 'othila-lab.config.json';
 
 const SLUG = /^[a-z0-9][a-z0-9-]{0,63}$/;
 const MAX_TITLE = 200; // limite du catalogue côté serveur
-const DEFAULTS = { server: 'packages/server-js/src/server.js', graphql: 'http://localhost:4000/graphql', endpoint: DEFAULT_ENDPOINT };
+const DEFAULTS = { graphql: 'http://localhost:4000/graphql', endpoint: DEFAULT_ENDPOINT };
+const VERSION = /^\d+\.\d+\.\d+$/;
+
+// Sans serveur déclaré, la formation n'en a pas : gql et startServer le disent avec ce message.
+export const NO_SERVER = "cette formation n'a pas de serveur GraphQL (server dans .othila-lab/formation.json)";
 const REFERENCE_DEFAULTS = { remote: 'origin', branch: 'main' };
 
 function findUp(from, name) {
@@ -38,8 +42,33 @@ const fail = (field, message) => {
 };
 const isText = (value) => typeof value === 'string' && value.trim() !== '';
 
+// Un chemin du manifeste : relatif à la racine du dépôt, et qui y reste ; renvoie le chemin absolu.
+function inside(root, value, field) {
+  const target = path.resolve(root, value);
+  const relative = path.relative(root, target);
+  if (path.isAbsolute(value) || relative.startsWith('..') || path.isAbsolute(relative)) {
+    fail(field, `chemin relatif à la racine du dépôt, qui y reste, attendu : ${value}`);
+  }
+  return target;
+}
+
+// Le client d'une formation front : son dossier, et le fichier qui prépare les tests de composants.
+// Le dossier peut ne pas exister encore (un lab le fait créer).
+function clientOf(raw, root) {
+  if (raw === undefined) return null;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) fail('client', 'objet attendu, par exemple { "dir": "packages/client-react" }');
+  if (!isText(raw.dir)) fail('client.dir', 'texte non vide attendu');
+  if (raw.setup !== undefined && !isText(raw.setup)) fail('client.setup', 'texte non vide attendu');
+  return {
+    dir: raw.dir,
+    path: inside(root, raw.dir, 'client.dir'),
+    setup: raw.setup ?? null,
+    setupPath: raw.setup === undefined ? null : inside(root, raw.setup, 'client.setup')
+  };
+}
+
 // Valide le manifeste lu et le complète par les défauts. Chaque erreur nomme le champ fautif.
-function validate(raw, dir) {
+function validate(raw, dir, root) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) fail('racine', 'objet JSON attendu');
   if (typeof raw.id !== 'string' || !SLUG.test(raw.id)) fail('id', 'minuscules, chiffres et tirets attendus');
   if (!isText(raw.title)) fail('title', 'texte non vide attendu');
@@ -59,9 +88,11 @@ function validate(raw, dir) {
     });
     return { title: seance.title.trim(), labs: [...seance.labs] };
   });
-  for (const key of Object.keys(DEFAULTS)) {
+  for (const key of ['server', ...Object.keys(DEFAULTS)]) {
     if (raw[key] !== undefined && !isText(raw[key])) fail(key, 'texte non vide attendu');
   }
+  if (raw.lab !== undefined && (typeof raw.lab !== 'string' || !VERSION.test(raw.lab))) fail('lab', 'version x.y.z attendue, par exemple 0.9.0');
+  const client = clientOf(raw.client, root);
   // D'où lab update tire les définitions des labs : la branche de référence du cours.
   const reference = raw.reference ?? {};
   if (typeof reference !== 'object' || Array.isArray(reference)) fail('reference', 'objet attendu');
@@ -72,9 +103,11 @@ function validate(raw, dir) {
     id: raw.id,
     title: raw.title.trim(),
     seances,
-    server: raw.server ?? DEFAULTS.server,
+    server: raw.server ?? null,
     graphql: raw.graphql ?? DEFAULTS.graphql,
     endpoint: raw.endpoint ?? DEFAULTS.endpoint,
+    lab: raw.lab ?? null,
+    client,
     reference: {
       remote: reference.remote ?? REFERENCE_DEFAULTS.remote,
       branch: reference.branch ?? REFERENCE_DEFAULTS.branch
@@ -93,7 +126,7 @@ export function readFormation(root = projectRoot()) {
     throw new Error(`${HOME}/${MANIFEST} illisible : ${error.message}`);
   }
   const dir = labsDir(root);
-  return { ...validate(raw, dir), root, labsDir: dir };
+  return { ...validate(raw, dir, root), root, labsDir: dir };
 }
 
 // Le manifeste, obligatoire : les commandes qui touchent aux labs en ont besoin.
@@ -112,7 +145,7 @@ export function formation(root = projectRoot()) {
 // L'environnement prime sur le manifeste, qui prime sur les défauts. Sans manifeste, les défauts.
 const setting = (key) => readFormation()?.[key] ?? DEFAULTS[key];
 export const endpointUrl = () => process.env.OTHILA_LAB_URL ?? setting('endpoint');
-export const serverScript = () => process.env.OTHILA_LAB_SERVER_SCRIPT ?? setting('server');
+export const serverScript = () => process.env.OTHILA_LAB_SERVER_SCRIPT ?? readFormation()?.server ?? null;
 export const graphqlUrl = (flag) => flag ?? process.env.GRAPHQL_URL ?? setting('graphql');
 
 // L'état de l'apprenant sur cette machine, jamais commité : .othila-lab/local/, ou OTHILA_LAB_DIR.
