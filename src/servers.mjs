@@ -2,7 +2,7 @@
 // Sert aux étapes qui ont besoin d'un second serveur (tester le test) et au rejeu.
 import { spawn } from 'node:child_process';
 import net from 'node:net';
-import { projectRoot, serverScript } from './config.mjs';
+import { NO_SERVER, projectRoot, serverScript } from './config.mjs';
 import { waitForServer } from './graphql.mjs';
 
 export function freePort() {
@@ -17,6 +17,7 @@ export function freePort() {
 }
 
 export async function startServer({ script = serverScript(), env = {}, cwd = projectRoot(), timeoutMs = 15000 } = {}) {
+  if (!script) throw new Error(NO_SERVER);
   const port = await freePort();
   const child = spawn(process.execPath, [script], {
     cwd,
