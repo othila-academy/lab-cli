@@ -303,6 +303,7 @@ test('liste-affiche', async () => {
 - **Toujours passer un message à `expect`** : `expect(x, 'message pour l'apprenant')`. L'apprenant ne lit que ce message ; sans lui, il lit l'anglais de Testing Library.
 - **Pas de `findBy*` ni de `getBy*` dans un test** : ils échouent avant `expect`, et l'apprenant lit l'anglais de Testing Library. Utiliser `queryBy*` dans `expect`, et `waitFor` pour attendre un rendu asynchrone.
 - **Un message sur une seule ligne** : seule la première ligne de l'échec est gardée.
+- **Un échec choisi par le test** (plusieurs causes possibles) : `expect.fail('message')` ou `throw new Error('message')` ; l'apprenant lit le message seul.
 - **Vérifier les exports attendus explicitement.** Sous Vite, un export nommé absent vaut `undefined`, sans erreur au chargement.
 - **Annoncer dans la consigne le chemin et les exports que le test importe** (`src/EventsList.jsx`, export par défaut) : c'est un contrat avec l'apprenant. C'est la seule exception à la règle « observer un comportement, jamais le code » : le test rend le composant de l'apprenant et observe le DOM.
 - **L'outillage de test est au cours.** Vitest, jsdom et `@testing-library/react` sont des devDependencies du client. Les tests du lab et la préparation vivent dans `.othila-lab/` et résolvent leurs imports depuis la racine du dépôt : le client est donc à la racine, ou un workspace du cours (dépendances hissées à la racine). Vitest 5 et jsdom 30 demandent Node 22.22, 24.15 ou plus récent ; `lab check` le vérifie avant de lancer Vitest.

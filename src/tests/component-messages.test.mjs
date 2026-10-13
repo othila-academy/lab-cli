@@ -20,6 +20,11 @@ test('Error: levée par le test : préfixe retiré ; autres erreurs et assertion
   assert.match(testFailure(failure.failureMessages[0]), /^Invariant Violation: ApolloProvider was not passed a client instance/);
 });
 
+test('expect.fail(message) : préfixe AssertionError retiré ; sans message, la ligne reste', () => {
+  assert.equal(testFailure('AssertionError: Après « Voir plus », rien : fetchMore ?\n    at z'), 'Après « Voir plus », rien : fetchMore ?');
+  assert.equal(testFailure('AssertionError: expect.fail()'), 'AssertionError: expect.fail()');
+});
+
 test('fichier du client absent : désigné depuis la racine du dépôt', () => {
   assert.equal(fileFailure(report('fichier-absent').testResults[0].message, where), 'packages/client-react/src/EventsList.jsx introuvable : as-tu créé ce fichier ?');
 });

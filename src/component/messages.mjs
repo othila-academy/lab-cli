@@ -19,13 +19,16 @@ const outsideClient = (file, { clientDir }) => {
   return relative.startsWith('..') || path.isAbsolute(relative);
 };
 
-// Un test en échec : `AssertionError: <message>: expected …` et `Error: <message>` rendent le message de l'auteur.
+// Un test en échec : `AssertionError: <message>: expected …`, `Error: <message>` et `AssertionError: <message>`
+// (expect.fail) rendent le message de l'auteur ; une assertion sans message (`expected …`) garde sa ligne.
 export function testFailure(failureMessage) {
   const line = firstLine(failureMessage);
   const assertion = line.match(/^AssertionError: (.+?): expected /);
   if (assertion) return assertion[1];
   const error = line.match(/^Error: (.+)$/);
   if (error) return error[1];
+  const failed = line.match(/^AssertionError: (.+)$/);
+  if (failed && !/^expected /.test(failed[1]) && failed[1] !== 'expect.fail()') return failed[1];
   return line;
 }
 
