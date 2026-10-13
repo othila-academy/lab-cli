@@ -28,18 +28,20 @@ Le paquet est publié en public sur npmjs : les élèves l'installent avec le re
 {
   "id": "graphql",
   "title": "GraphQL",
+  "lab": "0.9.0",
   "seances": [
     { "title": "Les bases", "labs": ["hello", "schema"] },
     { "title": "Performances", "labs": ["n1"] }
   ],
   "server": "packages/server-js/src/server.js",
   "graphql": "http://localhost:4000/graphql",
+  "client": { "dir": "packages/client-react", "setup": ".othila-lab/shared/client-setup.js" },
   "endpoint": "https://lab.othila-academy.com",
   "reference": { "remote": "origin", "branch": "main" }
 }
 ```
 
-`id`, `title` et `seances` sont obligatoires ; `seances` peut être vide au départ (`[]`), une séance cite au moins un lab. `server`, `graphql`, `endpoint` et `reference` prennent ces valeurs par défaut ; `reference` dit d'où `lab update` tire les définitions des labs. L'ordre des séances et des labs est celui du catalogue, de la progression et de l'écran. Un lab présent dans `labs/` mais cité par aucune séance est un brouillon : `lab start`, `lab check` et `lab show` le jouent, `lab catalog` le signale (un brouillon illisible y figure avec son erreur, sans faire échouer le tableau), `--publish` ne l'envoie jamais.
+`id`, `title` et `seances` sont obligatoires ; `seances` peut être vide au départ (`[]`), une séance cite au moins un lab. `server` désigne le serveur GraphQL du cours : sans lui, la formation n'a pas de serveur (une formation front), `lab check` n'en attend aucun et le rejeu n'en démarre aucun. `client` désigne le client vérifié par des tests de composants (`dir`, relatif à la racine du dépôt, `"."` pour un client à la racine) et le fichier qui prépare ces tests (`setup`, facultatif). `lab` est la version minimale de `@othila-academy/lab` exigée par le cours : une commande plus ancienne s'arrête et donne la commande d'installation ; `lab update` recopie quand même les labs, puis avertit. `graphql`, `endpoint` et `reference` prennent ces valeurs par défaut ; `reference` dit d'où `lab update` tire les définitions des labs. L'ordre des séances et des labs est celui du catalogue, de la progression et de l'écran. Un lab présent dans `labs/` mais cité par aucune séance est un brouillon : `lab start`, `lab check` et `lab show` le jouent, `lab catalog` le signale (un brouillon illisible y figure avec son erreur, sans faire échouer le tableau), `--publish` ne l'envoie jamais.
 
 La racine du dépôt est le premier dossier, en remontant, qui contient `.othila-lab/formation.json` : `npx lab` marche aussi depuis `packages/server-js/`.
 
@@ -62,6 +64,8 @@ Dans `package.json`, un raccourci : `"lab": "lab"`. L'apprenant lance alors `npm
 **Depuis l'ancien format** (`othila-lab.config.json` à la racine) : déplacer `labs/` dans `.othila-lab/labs/`, écrire `formation.json` (l'ancien champ `formation` donne `id` et `title`, les `section` des labs donnent les séances), retirer `section` des `index.mjs`, supprimer `othila-lab.config.json`, retirer `.othila-lab/` du `.gitignore` du projet, puis construire la chaîne (voir « Depuis la branche labs »). Sur chaque machine où `lab join` avait servi, l'ancien état local reste à la racine de `.othila-lab/` et n'est plus ignoré : déplacer `state.json` dans `.othila-lab/local/` pour garder la progression, supprimer `config.json`, `outbox.jsonl` et `rejected.jsonl`, puis relancer `lab join`. Tant qu'il reste, `lab start` refuse et le dit.
 
 **Depuis la branche `labs`** (0.7 et avant : une branche `labs`, des tags `lab-<id>-start` et `lab-<id>-solution`, une branche `lab-<id>` par apprenant et par lab) : `lab start` ne crée plus de branche et ne lit plus ces tags. Archiver l'ancien état (`git tag archive/labs labs`), puis sur `main` : y amener `.othila-lab/` avec `seances: []` et la devDependency 0.8, écrire le starter, poser `base` ; réécrire ensuite chaque lab en fin de chaîne (son dossier, son inscription dans `formation.json`, sa solution, le tag `solution/<lab>`, `lab replay --lab <lab>`). Les anciens tags `lab-*` peuvent alors être supprimés.
+
+**Passer à 0.9** : sans `server` dans `formation.json`, il n'y a plus de serveur par défaut (`packages/server-js/src/server.js`) ; un cours qui comptait sur ce défaut doit le déclarer. Pour profiter des tests de composants, déclarer `client`, et `"lab": "0.9.0"` pour que les apprenants restés en 0.8 soient prévenus dès 0.9.
 
 ## Commandes
 
@@ -120,6 +124,8 @@ export const points = 200;   // facultatif, valeur de l'étape : entier de 1 à 
 Une étape est acquise à la première explication soumise au vert ; chaque indice révélé avant réduit ses points de 10, 25 puis 50 % (voir [`points/regle.md`](points/regle.md)).
 
 L'objectif à atteindre d'une étape est la liste des libellés de ses checks : la fiche les affiche sous « Ce qui sera vérifié ». Les messages d'échec nomment le geste de diagnostic, jamais la réponse. `passesOnStart: true` marque un check qui passe déjà sur l'état de départ (la solution du lab précédent).
+
+Un lab de client vérifie le travail de l'apprenant par des tests de composants : le lab fournit ses tests Vitest, et `componentTest({ id, label, file, test })` relie un check à l'un d'eux. Le pas à pas : [guide d'écriture des labs](docs/ecrire-un-lab.md#un-lab-de-client--tests-de-composants).
 
 ## Variables d'environnement
 
