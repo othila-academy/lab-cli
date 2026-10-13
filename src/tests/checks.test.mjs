@@ -23,10 +23,12 @@ test("un check qui lève autre chose qu'une Error ne fait pas planter la command
   assert.equal(outcome.failed[2].message.length, 1000);
 });
 
-test('le contexte est transmis tel quel', async () => {
+test('le contexte est transmis, avec un subscribe propre au check', async () => {
   let seen;
   await runChecks([check('ctx', async (ctx) => { seen = ctx; })], { url: 'u', state: {} });
-  assert.deepEqual(seen, { url: 'u', state: {} });
+  const { subscribe, ...rest } = seen;
+  assert.deepEqual(rest, { url: 'u', state: {} });
+  assert.equal(typeof subscribe, 'function');
 });
 
 test('formatResults : ✓ et ✗ avec le libellé, message indenté, échec hors liste affiché', () => {
