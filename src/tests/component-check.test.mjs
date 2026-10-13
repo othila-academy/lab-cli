@@ -64,6 +64,8 @@ test('componentTest : forme du check, test par défaut = id, file normalisé, re
   const c = componentTest({ id: 'a', label: 'A', file: 'tests/./a.test.jsx', passesOnStart: true });
   assert.deepEqual({ ...c, run: typeof c.run }, { id: 'a', label: 'A', passesOnStart: true, component: { file: 'tests/a.test.jsx', test: 'a' }, run: 'function' });
   assert.throws(() => componentTest({ id: 'b', label: 'B', file: '../ailleurs.test.jsx' }), /componentTest b : file doit rester dans le dossier du lab/);
+  assert.throws(() => componentTest({ id: 'w', label: 'W', file: 'C:\\ailleurs\\x.test.js' }), /componentTest w : file doit rester dans le dossier du lab/);
+  assert.throws(() => componentTest({ id: 'v', label: 'V', file: 'c:x.test.js' }), /componentTest v : file doit rester dans le dossier du lab/);
   assert.throws(() => componentTest({ id: 'c', label: 'C', file: 'tests/c.css' }), /componentTest c : file doit nommer un fichier de test \.js, \.jsx, \.mjs, \.ts ou \.tsx/);
   assert.throws(() => componentTest({ id: 'd', file: 'd.test.js' }), /componentTest : id et label sont obligatoires/);
 });
@@ -133,4 +135,18 @@ test('Vitest sans rapport : la fin de sa sortie d’erreur', async () => {
   installFakeVitest(clientDir, { noReport: true });
   const { messages } = await check();
   assert.match(messages.affiche, /^Vitest n'a pas produit de rapport \(code 1\) : plantage simulé$/);
+});
+
+test('messages avec chemins absolus réels (racine derrière un lien, comme /var sous macOS) : chemins depuis la racine du dépôt', async () => {
+  const { clientDir } = setup();
+  const real = realpathSync(clientDir);
+  installFakeVitest(clientDir, {
+    files: {
+      'tests/liste.test.jsx': { message: `Transform failed with 1 error:\n${path.join(real, 'src', 'A.jsx')}:3:7: ERROR: Expected ";" but found "x"` },
+      'tests/connexion.test.jsx': { message: `Failed to resolve import "react" from "${path.join(real, 'src', 'App.jsx')}". Does the file exist?` }
+    }
+  });
+  const { messages } = await check();
+  assert.equal(messages.affiche, 'client/src/A.jsx ne compile pas (ligne 3) : Expected ";" but found "x"');
+  assert.equal(messages.connexion, "le paquet react n'est pas installé pour le client (client)");
 });
