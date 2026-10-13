@@ -60,6 +60,6 @@ test('autre erreur de fichier : première ligne non vide', () => {
 test('paquet introuvable depuis un test du lab : le client doit être un workspace, ou ses dépendances à la racine', () => {
   assert.equal(
     fileFailure('Failed to resolve import "@testing-library/react" from "../../.othila-lab/labs/client-apollo/tests/liste.test.jsx". Does the file exist?', where),
-    "le paquet @testing-library/react est introuvable depuis .othila-lab/labs/client-apollo/tests/liste.test.jsx : installe-le en dépendance de développement du client, qui doit être un workspace du cours (ou installe-le à la racine du dépôt)"
+    "le paquet @testing-library/react est introuvable depuis .othila-lab/labs/client-apollo/tests/liste.test.jsx : installe-le dans le client, qui doit être un workspace du cours (ou à la racine du dépôt)"
   );
 });

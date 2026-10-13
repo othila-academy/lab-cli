@@ -318,7 +318,7 @@ test('liste-affiche', async () => {
 | `Failed to resolve import "@client/<chemin>"` | « packages/client-react/<chemin> introuvable : as-tu créé ce fichier ? » |
 | `Failed to resolve import "./Foo.jsx" from "src/App.jsx"` | « packages/client-react/src/Foo.jsx introuvable (importé par packages/client-react/src/App.jsx) » |
 | `Failed to resolve import "<paquet>"` | « le paquet <paquet> n'est pas installé pour le client (packages/client-react) » |
-| `Failed to resolve import "<paquet>"` depuis un test du lab ou la préparation | « le paquet <paquet> est introuvable depuis .othila-lab/… : installe-le en dépendance de développement du client, qui doit être un workspace du cours (ou installe-le à la racine du dépôt) » |
+| `Failed to resolve import "<paquet>"` depuis un test du lab ou la préparation | « le paquet <paquet> est introuvable depuis .othila-lab/… : installe-le dans le client, qui doit être un workspace du cours (ou à la racine du dépôt) » |
 | un hook (`beforeAll`, préparation) en échec | la cause du fichier, au lieu de « n'a pas été joué » |
 | une erreur de compilation | « packages/client-react/src/X.jsx ne compile pas (ligne N) : <raison> » |
 

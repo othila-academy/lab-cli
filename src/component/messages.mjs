@@ -42,7 +42,7 @@ export function fileFailure(message, where) {
       return `${shown(missing, where)} introuvable (importé par ${shown(importer, where)})`;
     }
     if (outsideClient(importer, where)) {
-      return `le paquet ${packageName(spec)} est introuvable depuis ${shown(importer, where)} : installe-le en dépendance de développement du client, qui doit être un workspace du cours (ou installe-le à la racine du dépôt)`;
+      return `le paquet ${packageName(spec)} est introuvable depuis ${shown(importer, where)} : installe-le dans le client, qui doit être un workspace du cours (ou à la racine du dépôt)`;
     }
     return `le paquet ${packageName(spec)} n'est pas installé pour le client (${clientLabel(where)})`;
   }
