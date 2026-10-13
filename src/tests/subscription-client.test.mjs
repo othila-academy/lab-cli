@@ -125,6 +125,13 @@ test('fermeture pendant l’attente : null tout de suite, closed garde code et r
   assert.deepEqual(sub.closed, { code: 4400, reason: 'bye' });
 });
 
+test('fermeture pendant ready : subscribe lève, avec le code et la raison du serveur', async () => {
+  server = await startFakeWs({ onSubscribe: ({ socket }) => socket.close(4500, 'jwt malformed') });
+  await assert.rejects(subscribe(server.url, Q, { ready: 100 }), {
+    message: 'Le serveur WebSocket a fermé la connexion (code 4500 : jwt malformed) avant l’abonnement.'
+  });
+});
+
 test('ping : le client répond pong', async () => {
   server = await startFakeWs({ onSubscribe: ({ send }) => send({ type: 'ping' }) });
   await open(server.url, Q, { ready: 0 });

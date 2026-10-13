@@ -98,6 +98,8 @@ export async function subscribe(url, query, { variables, token, connectionParams
   send({ id: ID, type: 'subscribe', payload: { query, variables } });
   // graphql-ws n'accuse pas réception d'un subscribe : on laisse au serveur le temps d'écouter.
   await sleep(ready);
+  // Fermée avant d'être prête (souvent un context qui lève côté serveur) : le dire, plutôt qu'un « rien reçu ».
+  if (closed && queue.length === 0) throw new Error(closedBeforeReady(closed.code, closed.reason));
 
   return {
     get closed() {
