@@ -184,3 +184,28 @@ test('lab update : un état local suivi par erreur (git add -f) n’est ni suppr
   assert.equal(learner('show', '--name-only', '--format=', 'HEAD').includes('local/'), false);
   assert.ok(existsSync(learnerFile('.othila-lab', 'labs', 'b', 'index.mjs')));
 });
+
+test('lab update : un manifeste qui exige une version plus récente est recopié, puis avertit (code 0)', async () => {
+  const { publish } = setup();
+  course.write({ ...manifest(['a']), lab: '99.0.0' });
+  publish('le cours exige 99.0.0');
+  const io = captureIo();
+  assert.equal(await main(['update'], io), 0);
+  assert.match(readFileSync(learnerFile('.othila-lab', 'formation.json'), 'utf8'), /"lab": "99\.0\.0"/);
+  assert.match(io.lines.join('\n'), /attention : ce cours demande @othila-academy\/lab 99\.0\.0 ou plus/);
+  const after = captureIo();
+  assert.equal(await main(['catalog'], after), 3);
+  assert.match(after.errors.join('\n'), /npm install --save-dev --save-exact @othila-academy\/lab@99\.0\.0/);
+});
+
+test('lab update : marche aussi quand le manifeste local exige déjà une version plus récente', async () => {
+  const { publish } = setup();
+  course.write({ ...manifest(['a']), lab: '99.0.0' });
+  publish('le cours exige 99.0.0');
+  assert.equal(await main(['update'], captureIo()), 0);
+  addLab('b', 'B');
+  course.write({ ...manifest(['a', 'b']), lab: '99.0.0' });
+  publish('lab b');
+  assert.equal(await main(['update'], captureIo()), 0);
+  assert.ok(existsSync(learnerFile('.othila-lab', 'labs', 'b', 'index.mjs')));
+});

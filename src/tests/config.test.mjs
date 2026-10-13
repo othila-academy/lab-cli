@@ -7,7 +7,7 @@ import { makeCourse, tinyLab } from '../test-helpers/course.mjs';
 import { tempLabDir } from '../test-helpers/tmp.mjs';
 import {
   DEFAULT_ENDPOINT, endpointUrl, ensureGitignore, formation, graphqlUrl, labsDir, loadSession, loadState,
-  localDir, projectRoot, readFormation, saveSession, saveState, serverScript
+  localDir, olderThan, PACKAGE_VERSION, projectRoot, readFormation, saveSession, saveState, serverScript, versionProblem
 } from '../config.mjs';
 
 let tmp;
@@ -190,7 +190,7 @@ test('depuis un sous-dossier du cours, la racine est celle du manifeste ; un .ot
 });
 
 test('formation.json : client lu, chemins absolus calculés, dossier pas encore créé accepté', () => {
-  course = makeCourse({ labs: { a: tinyLab() }, manifest: { client: { dir: 'packages/client-react', setup: '.othila-lab/shared/client-setup.js' }, lab: '0.9.0' } });
+  course = makeCourse({ labs: { a: tinyLab() }, manifest: { client: { dir: 'packages/client-react', setup: '.othila-lab/shared/client-setup.js' }, lab: '0.1.0' } });
   const f = formation(course.root);
   assert.deepEqual(f.client, {
     dir: 'packages/client-react',
@@ -198,7 +198,7 @@ test('formation.json : client lu, chemins absolus calculés, dossier pas encore 
     setup: '.othila-lab/shared/client-setup.js',
     setupPath: path.join(course.root, '.othila-lab', 'shared', 'client-setup.js')
   });
-  assert.equal(f.lab, '0.9.0');
+  assert.equal(f.lab, '0.1.0');
   course.write({ id: 'x', title: 'T', seances: [], client: { dir: '.' } });
   assert.deepEqual(formation(course.root).client, { dir: '.', path: course.root, setup: null, setupPath: null });
 });
@@ -209,4 +209,24 @@ test('sans server dans formation.json : serverScript() vaut null, sauf OTHILA_LA
   assert.equal(serverScript(), null);
   process.env.OTHILA_LAB_SERVER_SCRIPT = 'x/server.js';
   assert.equal(serverScript(), 'x/server.js');
+});
+
+test('version minimale : comparaison x.y.z, préversion comptée comme sa version', () => {
+  assert.equal(olderThan('0.8.0', '0.9.0'), true);
+  assert.equal(olderThan('0.9.0', '0.9.0'), false);
+  assert.equal(olderThan('0.10.0', '0.9.0'), false);
+  assert.equal(olderThan('1.0.0', '0.99.99'), false);
+  assert.equal(olderThan('0.9.0-rc.1', '0.9.0'), false);
+  assert.match(PACKAGE_VERSION, /^\d+\.\d+\.\d+/);
+});
+
+test('version minimale : formation() refuse un paquet trop ancien, sauf checkVersion: false', () => {
+  course = makeCourse({ labs: { a: tinyLab() }, manifest: { lab: '99.0.0' } });
+  assert.throws(
+    () => formation(course.root),
+    new RegExp(`ce cours demande @othila-academy/lab 99\\.0\\.0 ou plus \\(installé : ${PACKAGE_VERSION.replaceAll('.', '\\.')}\\) : npm install --save-dev --save-exact @othila-academy/lab@99\\.0\\.0`)
+  );
+  assert.equal(formation(course.root, { checkVersion: false }).lab, '99.0.0');
+  assert.equal(versionProblem({ lab: '0.9.0' }, '0.9.0'), null);
+  assert.equal(versionProblem({ lab: null }, '0.1.0'), null);
 });
