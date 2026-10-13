@@ -67,6 +67,8 @@ Dans `package.json`, un raccourci : `"lab": "lab"`. L'apprenant lance alors `npm
 
 **Passer à 0.9** : sans `server` dans `formation.json`, il n'y a plus de serveur par défaut (`packages/server-js/src/server.js`) ; un cours qui comptait sur ce défaut doit le déclarer. Pour profiter des tests de composants, déclarer `client`, et `"lab": "0.9.0"` pour que les apprenants restés en 0.8 soient prévenus dès 0.9.
 
+**Passer à 0.10** : lab-cli exige Node 22 ou plus (le client WebSocket natif de Node sert aux checks de subscription). Un cours qui utilise `subscribe` déclare `"lab": "0.10.0"`.
+
 ## Commandes
 
 | Commande | Rôle | Code de sortie |
@@ -116,7 +118,7 @@ import { assert, expectData } from '@othila-academy/lab';
 export const title = 'Observer';
 export const instructions = `La consigne, en deux à quatre lignes.`;   // facultatif
 export const prediction = { promptId: 'slug', question: '…', choices: ['1', '21'], expected: '21' };   // facultatif
-export const checks = [{ id: 'slug', label: 'phrase affichée', passesOnStart: false, run: async ({ url, gql, state, lab, step, startServer, runChecks }) => { /* assert… */ } }];
+export const checks = [{ id: 'slug', label: 'phrase affichée', passesOnStart: false, run: async ({ url, gql, subscribe, state, lab, step, startServer, runChecks }) => { /* assert… */ } }];
 export const hints = ['une question', 'une direction', 'une quasi-solution'];   // trois au plus
 export const points = 200;   // facultatif, valeur de l'étape : entier de 1 à 1000, 100 par défaut
 ```
@@ -126,6 +128,8 @@ Une étape est acquise à la première explication soumise au vert ; chaque indi
 L'objectif à atteindre d'une étape est la liste des libellés de ses checks : la fiche les affiche sous « Ce qui sera vérifié ». Les messages d'échec nomment le geste de diagnostic, jamais la réponse. `passesOnStart: true` marque un check qui passe déjà sur l'état de départ (la solution du lab précédent).
 
 Un lab de client vérifie le travail de l'apprenant par des tests de composants : le lab fournit ses tests Vitest, et `componentTest({ id, label, file, test })` relie un check à l'un d'eux. Le pas à pas : [guide d'écriture des labs](docs/ecrire-un-lab.md#un-lab-de-client--tests-de-composants).
+
+Un lab de subscription vérifie qu'un abonné reçoit ce que le serveur publie : `subscribe(query, { variables, token, connectionParams })` ouvre un abonnement graphql-ws (protocole graphql-transport-ws) à l'adresse du serveur GraphQL (`http` devient `ws`), et `sub.next({ timeout })` rend le message suivant, ou `null`. lab-cli ferme les abonnements à la fin de chaque check. Le pas à pas : [guide d'écriture des labs](docs/ecrire-un-lab.md#un-lab-de-subscription).
 
 ## Variables d'environnement
 
