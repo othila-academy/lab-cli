@@ -2,7 +2,7 @@ import { NO_SERVER, formation, graphqlUrl, loadSession, loadState, saveState, se
 import { componentRunner } from '../component/runner.mjs';
 import { formatResults, runChecks } from '../checks.mjs';
 import { describe } from '../git.mjs';
-import { gql, waitForServer } from '../graphql.mjs';
+import { gql, unreachableMessage, waitForServer } from '../graphql.mjs';
 import { loadLab, loadStep, stepDigest } from '../labs.mjs';
 import { applyCheck, pointsFor } from '../points.mjs';
 import { createReporter, describeFlush } from '../reporter.mjs';
@@ -20,7 +20,7 @@ async function askPrediction(io, prediction, answerFlag) {
 
 const unreachable = (url) => ({
   passed: [],
-  failed: [{ id: 'server-unreachable', label: 'le serveur du fil rouge répond', message: `injoignable sur ${url} : lance \`npm run start:server-js\` dans un autre terminal, ou précise --url` }],
+  failed: [{ id: 'server-unreachable', label: 'le serveur du fil rouge répond', message: unreachableMessage(url) }],
   durationMs: 0
 });
 
