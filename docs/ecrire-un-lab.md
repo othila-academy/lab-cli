@@ -220,16 +220,16 @@ Les apprenants récupèrent le lab avec `npx lab update` : leur `.othila-lab/` s
 | Champ | Usage |
 |---|---|
 | `gql(query, { variables, token })` | une requête vers le serveur de l'apprenant ; rend `{ data, errors, extensions }` |
-| `url` | l'URL GraphQL de l'apprenant |
+| `url` | l'URL GraphQL de l'apprenant ; `null` dans une formation sans serveur, où `gql` lève une erreur |
 | `lab`, `step` | le lab et l'étape en cours, dont `lab.dir`, le dossier du lab |
 | `startServer({ env })` | lance un second serveur du cours, sur un port libre, avec des variables d'environnement ; rend `{ url, stop }` |
 | `runChecks(checks, ctx)` | joue une liste de checks, par exemple ceux écrits par l'apprenant |
 
-Le paquet exporte aussi `assert`, `expectData`, `expectErrorCode` et `loginAs(gql, email)` pour les labs qui demandent un compte connecté.
+Le paquet exporte aussi `assert`, `expectData`, `expectErrorCode`, `loginAs(gql, email)` pour les labs qui demandent un compte connecté, et `componentTest` pour les labs de client (voir [Un lab de client](#un-lab-de-client--tests-de-composants)).
 
 **Les règles :**
 
-- **Observer un comportement, jamais le code.** Un check interroge le serveur, par requête ou par introspection. Il ne lit pas les fichiers de l'apprenant. C'est ce qui permet à la piste Python de faire les mêmes labs.
+- **Observer un comportement, jamais le code.** Un check interroge le serveur, par requête ou par introspection. Il ne lit pas les fichiers de l'apprenant. C'est ce qui permet à la piste Python de faire les mêmes labs. Exception : un test de composant (voir [Un lab de client](#un-lab-de-client--tests-de-composants)) rend le composant de l'apprenant et observe le DOM ; il l'importe par un chemin que la consigne annonce.
 - **Un message d'échec nomme un geste de diagnostic.** « Demande `__typename` pour voir ce qui revient », pas « il manque `__resolveType` ». La réponse est réservée au troisième indice.
 - **Une erreur GraphQL se montre telle quelle**, suivie de la question du cours : « Qui a tort, la requête ou le serveur ? ». Le catalogue d'erreurs du cours (`docs/ERREURS.md`) aide l'apprenant à trancher.
 - **Un libellé est une phrase observable** : « node(id: "999") rend null, sans erreur ». C'est ce que l'apprenant lit comme objectif.
@@ -243,6 +243,84 @@ Le paquet exporte aussi `assert`, `expectData`, `expectErrorCode` et `loginAs(gq
 ```js
 export const mine = { template: 'mine.template.mjs', target: 'packages/server-js/test/n1-mine.check.mjs' };   // copié par lab start s'il n'existe pas
 ```
+
+## Un lab de client : tests de composants
+
+Un check ordinaire interroge le serveur. Pour vérifier un client (React, par exemple), le lab fournit des **tests de composants** écrits avec Vitest et Testing Library, et chaque check en lit un résultat.
+
+**Le principe.**
+
+- Le lab range ses tests dans son dossier, par exemple `.othila-lab/labs/client-apollo/tests/brancher.test.jsx`.
+- `componentTest({ id, label, file, test })` relie un check à un test : `file` est relatif au dossier du lab, `test` est le titre exact du test (ou son nom complet, titres des `describe` compris), l'`id` du check par défaut. `passesOnStart` s'utilise comme pour les autres checks.
+- `lab check` lance le Vitest **du cours** une seule fois par étape, sous jsdom, sur les seuls fichiers cités par l'étape : les tests de l'apprenant ne tournent pas. La config Vite du client (plugins, JSX) est reprise.
+- Une étape peut mélanger checks serveur et checks de composants.
+
+**`formation.json`.** `client.dir` désigne le client ; `client.setup`, facultatif, un fichier chargé avant chaque fichier de test du lab. Dans les tests, `@client/` désigne `client.dir`, et `process.env.LAB_GRAPHQL_URL` l'URL du serveur GraphQL quand le cours en a un (celle de `lab check`, `--url` compris).
+
+```js
+// .othila-lab/shared/client-setup.js : la préparation du cours
+import { afterEach, vi } from 'vitest';
+import { cleanup } from '@testing-library/react';
+vi.stubEnv('VITE_GRAPHQL_URL', process.env.LAB_GRAPHQL_URL);   // le client lit son URL dans import.meta.env
+afterEach(cleanup);
+```
+
+```js
+// .othila-lab/labs/client-apollo/brancher.mjs
+import { componentTest } from '@othila-academy/lab';
+
+export const checks = [
+  componentTest({ id: 'liste-affiche', label: 'la liste affiche les titres renvoyés par events', file: 'tests/brancher.test.jsx' }),
+  { id: 'login-fonctionne', label: 'login répond pour Bilal', run: async ({ gql }) => { /* … */ } }
+];
+```
+
+```jsx
+// .othila-lab/labs/client-apollo/tests/brancher.test.jsx
+import { render, screen } from '@testing-library/react';
+import { ApolloProvider } from '@apollo/client/react';
+import { expect, test } from 'vitest';
+import { client } from '@client/src/apollo.js';
+import EventsList from '@client/src/EventsList.jsx';
+
+test('liste-affiche', async () => {
+  expect(client, "src/apollo.js n'exporte pas client").toBeTruthy();
+  const res = await fetch(process.env.LAB_GRAPHQL_URL, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ query: '{ events { title } }' })
+  });
+  const { data } = await res.json();
+  render(<ApolloProvider client={client}><EventsList /></ApolloProvider>);
+  for (const { title } of data.events) {
+    expect(await screen.findByText(title, { exact: false }), `Le titre « ${title} » n'apparaît pas : le composant lit-il data.events ?`).toBeTruthy();
+  }
+});
+```
+
+**Les règles d'écriture.**
+
+- **Toujours passer un message à `expect`** : `expect(x, 'message pour l'apprenant')`. L'apprenant ne lit que ce message ; sans lui, il lit l'anglais de Testing Library.
+- **Vérifier les exports attendus explicitement.** Sous Vite, un export nommé absent vaut `undefined`, sans erreur au chargement.
+- **Annoncer dans la consigne le chemin et les exports que le test importe** (`src/EventsList.jsx`, export par défaut) : c'est un contrat avec l'apprenant. C'est la seule exception à la règle « observer un comportement, jamais le code » : le test rend le composant de l'apprenant et observe le DOM.
+- **L'outillage de test est au cours.** Vitest, jsdom et `@testing-library/react` sont des devDependencies du client (ou de la racine, en workspaces). Avec Vitest 5, Node ≥ 22.12.
+- **Monter `lab` dans `formation.json`** (`"lab": "0.9.0"`) dès qu'un lab utilise `componentTest` : un apprenant resté sur une version plus ancienne lit alors quelle version installer.
+
+**Ce que voit l'apprenant.**
+
+| Vitest renvoie | L'apprenant lit |
+|---|---|
+| `AssertionError: <message>: expected …` | `<message>` |
+| `Error: <message>`, levée par le test | `<message>` |
+| un autre échec, sans message | sa première ligne, telle quelle |
+| `Failed to resolve import "@client/<chemin>"` | « packages/client-react/<chemin> introuvable : as-tu créé ce fichier ? » |
+| `Failed to resolve import "./Foo.jsx" from "src/App.jsx"` | « packages/client-react/src/Foo.jsx introuvable (importé par packages/client-react/src/App.jsx) » |
+| `Failed to resolve import "<paquet>"` | « le paquet <paquet> n'est pas installé pour le client (packages/client-react) » |
+| une erreur de compilation | « packages/client-react/src/X.jsx ne compile pas (ligne N) : <raison> » |
+
+Quand les tests ne peuvent pas tourner, chaque check de composant de l'étape échoue avec le même message : pas de `client` dans le manifeste, dossier du client absent (« packages/client-react n'existe pas : as-tu créé le client ? »), Vitest introuvable, plus de 60 s d'exécution.
+
+**Au rejeu**, `npm ci` installe le client s'il est un workspace du cours. Au départ d'un lab qui crée le client, le client absent fait échouer ses checks de composants, comme attendu ; sur la solution, ils passent contre le serveur que démarre le rejeu.
 
 ## Mettre à jour un lab
 
@@ -326,6 +404,11 @@ Le retirer de `formation.json` et supprimer son dossier `.othila-lab/labs/<id>/`
 | `origin/main introuvable` (`lab update`) | le remote du cours n'est pas `origin`, ou sa branche n'est pas `main` : `git remote -v`, et le champ `reference` de `formation.json` |
 | « hors ligne : labs de la dernière référence récupérée » | `lab update` n'a pas joint le remote : les définitions viennent du dernier fetch ; relancer une fois en ligne |
 | `lab check` sort en code 2 | le serveur de l'apprenant ne répond pas : `npm run start:server-js`, ou préciser `--url` |
+| `Vitest n'est pas installé pour …` | installer Vitest, jsdom et `@testing-library/react` en devDependencies du client |
+| `test « x » introuvable dans tests/….test.jsx` | le titre du test et le `test` du check (ou son `id`) diffèrent |
+| Vitest refuse de démarrer (version de Node) | Vitest 5 et jsdom 30 demandent Node ≥ 22.12 |
+| `ce cours demande @othila-academy/lab X ou plus` | installer la version indiquée : `npm install --save-dev --save-exact @othila-academy/lab@X` |
+| `cette formation n'a pas de serveur GraphQL` | un check appelle `gql` dans une formation sans `server` : déclarer `server` dans `formation.json`, ou retirer l'appel |
 | « hors ligne : N évènement(s) conservé(s) » | le serveur othila-lab est injoignable ; tout repart à la commande suivante |
 | « jeton refusé, relance lab join » | l'apprenant a rejoint depuis un autre poste, ce qui invalide l'ancien jeton |
 | `npx lab update` ou `lab init` inconnus | l'apprenant a une version du paquet antérieure à la 0.8 : `npm install --save-dev --save-exact @othila-academy/lab@<version du cours>` |
