@@ -1,0 +1,6 @@
+{
+  "id": "front",
+  "title": "Formation front de test",
+  "seances": [{ "title": "Séance 1", "labs": ["bonjour"] }],
+  "client": { "dir": "client", "setup": ".othila-lab/shared/setup.mjs" }
+}
