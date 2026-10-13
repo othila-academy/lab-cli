@@ -18,7 +18,8 @@ const course = makeCourse({
     n1: { 'index.mjs': "export const title = 'N+1';\nexport const steps = ['observe', 'fix'];\n", 'observe.mjs': step(200, ['q', 'd', 's']), 'fix.mjs': step(null, ['q']) },
     brouillon: { 'index.mjs': "export const title = 'Brouillon';\nexport const steps = ['s'];\n", 's.mjs': step(null, []) }
   },
-  seances: [{ title: 'Séance 1', labs: ['n1'] }]
+  seances: [{ title: 'Séance 1', labs: ['n1'] }],
+  manifest: { server: 'server.mjs' } // un cours avec serveur ; le fichier n'a pas besoin d'exister
 });
 
 let endpoint;

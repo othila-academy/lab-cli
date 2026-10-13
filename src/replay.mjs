@@ -1,6 +1,6 @@
 // Rejeu des labs sur la chaîne, depuis la machine du formateur.
 // Pour chaque lab et chaque état (start = son départ, solution = solution/<lab>) : worktree git sur le tag, npm ci,
-// .othila-lab/ et le paquet lab de l'arbre courant posés dessus, serveur en processus fils,
+// .othila-lab/ et le paquet lab de l'arbre courant posés dessus, serveur en processus fils quand la formation en déclare un,
 // `lab check --json --no-report`, puis comparaison à la règle : tout échoue au départ sauf passesOnStart, tout passe sur la solution.
 // Le tag fige le code ; la définition du lab et la commande sont celles d'aujourd'hui.
 import { execFileSync, spawn } from 'node:child_process';
@@ -52,7 +52,8 @@ function runCheckJson({ dir, labId, url, stateDir }) {
   const env = { ...process.env, OTHILA_LAB_DIR: stateDir };
   delete env.OTHILA_LAB_ROOT; // la commande trouve la racine du worktree elle-même
   return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [LAB_BINARY, 'check', labId, '--json', '--no-report', '--url', url], {
+    const args = [LAB_BINARY, 'check', labId, '--json', '--no-report', ...(url ? ['--url', url] : [])];
+    const child = spawn(process.execPath, args, {
       cwd: dir,
       env,
       stdio: ['ignore', 'pipe', 'pipe']
@@ -88,8 +89,9 @@ export async function replayLab(labId, { start, solution, repo = projectRoot(), 
       execFileSync('npm', ['ci', '--no-audit', '--no-fund'], { cwd: dir, stdio: 'pipe' });
       const installMs = Date.now() - started;
       overlay(repo, dir);
-      server = await startServer({ cwd: dir, script: formation(dir).server });
-      const results = await runCheckJson({ dir, labId, url: server.url, stateDir: path.join(base, `${state}-othila-lab`) });
+      const script = formation(dir).server;
+      server = script ? await startServer({ cwd: dir, script }) : null; // une formation front n'a pas de serveur
+      const results = await runCheckJson({ dir, labId, url: server?.url ?? null, stateDir: path.join(base, `${state}-othila-lab`) });
       states.push({ state, tag, results, problems: evaluate(state, results), installMs });
     } finally {
       if (server) await server.stop();

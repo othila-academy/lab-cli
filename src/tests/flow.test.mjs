@@ -20,7 +20,8 @@ const lab = (title, steps) => {
 };
 const course = makeCourse({
   labs: { vert: lab('Tout vert', { a: true, b: true }), rouge: lab('Tout rouge', { x: false }) },
-  seances: [{ title: 'Séance 1 · Vert', labs: ['vert'] }, { title: 'Séance 2 · Rouge', labs: ['rouge'] }]
+  seances: [{ title: 'Séance 1 · Vert', labs: ['vert'] }, { title: 'Séance 2 · Rouge', labs: ['rouge'] }],
+  manifest: { server: 'server.mjs' } // un cours avec serveur ; le fichier n'a pas besoin d'exister
 });
 
 let endpoint;
