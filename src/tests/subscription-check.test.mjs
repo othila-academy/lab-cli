@@ -49,6 +49,35 @@ test('chaque check a son subscribe, adresse déduite de ctx.url ; tout est ferm�
   assert.deepEqual(server.log.completes, ['1', '1', '1']);
 });
 
+test('un subscribe encore en cours quand le check se termine est fermé dès qu’il aboutit', async () => {
+  server = await startFakeWs();
+  const outcome = await runChecks(
+    [{ id: 'tous', label: 'tous', run: ({ subscribe }) => Promise.all([subscribe(Q, { ready: 100 }), Promise.reject(new Error('autre échec'))]) }],
+    { url: server.httpUrl }
+  );
+  assert.equal(outcome.failed[0].message, 'autre échec');
+  // L'abonnement aboutit après la fin du check : attendre que le serveur l'ait reçu, puis le délai ready.
+  for (let i = 0; i < 100 && server.log.subscribes.length === 0; i++) await new Promise((r) => setTimeout(r, 10));
+  assert.equal(server.log.subscribes.length, 1);
+  await new Promise((resolve) => setTimeout(resolve, 200));
+  assert.ok(await server.drained(1000), 'aucune connexion ne reste ouverte');
+});
+
+test('un subscribe oublié qui échoue plus tard ne laisse pas de rejet non géré', async () => {
+  server = await startFakeWs({ closeOnInit: { code: 4403, reason: 'Forbidden' } });
+  const unhandled = [];
+  const listener = (reason) => unhandled.push(reason);
+  process.on('unhandledRejection', listener);
+  try {
+    const outcome = await runChecks([{ id: 'oubli', label: 'oubli', run: ({ subscribe }) => { subscribe(Q); } }], { url: server.httpUrl });
+    assert.deepEqual(outcome.passed, ['oubli']);
+    await new Promise((resolve) => setTimeout(resolve, 300));
+  } finally {
+    process.off('unhandledRejection', listener);
+  }
+  assert.deepEqual(unhandled, []);
+});
+
 test('sans serveur GraphQL (ctx.url nul) : subscribe lève NO_SERVER', async () => {
   const outcome = await runChecks([{ id: 's', label: 's', run: ({ subscribe }) => subscribe(Q) }], { url: null });
   assert.equal(outcome.failed[0].message, NO_SERVER);

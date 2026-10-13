@@ -9,11 +9,19 @@ export async function runChecks(checks, ctx) {
   const failed = [];
   for (const check of checks) {
     const subscriptions = [];
-    const subscribe = async (query, options) => {
-      if (!ctx.url) throw new Error(NO_SERVER);
-      const sub = await open(wsUrlOf(ctx.url), query, options);
-      subscriptions.push(sub);
-      return sub;
+    let ended = false;
+    // Un abonnement qui aboutit après la fin du check (Promise.all, await oublié) est fermé aussitôt ;
+    // son échec éventuel est déjà géré ici, pour ne jamais laisser de rejet orphelin.
+    const subscribe = (query, options) => {
+      const pending = ctx.url
+        ? open(wsUrlOf(ctx.url), query, options).then((sub) => {
+            if (ended) sub.close();
+            else subscriptions.push(sub);
+            return sub;
+          })
+        : Promise.reject(new Error(NO_SERVER));
+      pending.catch(() => {});
+      return pending;
     };
     try {
       await check.run({ ...ctx, subscribe });
@@ -22,6 +30,7 @@ export async function runChecks(checks, ctx) {
       const message = error && typeof error === 'object' && 'message' in error ? String(error.message) : String(error);
       failed.push({ id: check.id, label: check.label, message: message.slice(0, 1000) });
     } finally {
+      ended = true;
       for (const sub of subscriptions) sub.close();
     }
   }
