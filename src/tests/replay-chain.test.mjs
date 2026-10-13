@@ -126,3 +126,38 @@ test('lab replay --lab : lab inconnu en code 3', async () => {
   assert.equal(code, 3);
   assert.match(err, /lab inconnu : zz/);
 });
+
+test('lab replay : une formation sans serveur se rejoue, aucun serveur démarré', async () => {
+  course = makeCourse({
+    labs: {
+      a: {
+        'index.mjs': "export const title = 'A';\nexport const steps = ['s'];\n",
+        's.mjs': `import { readFileSync } from 'node:fs';
+export const checks = [{ id: 'fichier', label: 'answer.txt vaut 42', run: async ({ url }) => {
+  if (url !== null) throw new Error('un serveur a été passé : ' + url);
+  const value = readFileSync('answer.txt', 'utf8').trim();
+  if (value !== '42') throw new Error('answer.txt vaut ' + value);
+} }];
+`
+      }
+    }
+  });
+  const file = (name, content) => writeFileSync(path.join(course.root, name), content);
+  file('package.json', JSON.stringify({ name: 'cours-test', version: '1.0.0', private: true }));
+  file('package-lock.json', JSON.stringify({ name: 'cours-test', version: '1.0.0', lockfileVersion: 3, requires: true, packages: { '': { name: 'cours-test', version: '1.0.0' } } }));
+  file('.gitignore', 'node_modules/\n');
+  writeFileSync(path.join(course.home, '.gitignore'), 'local/\n');
+  file('answer.txt', '0');
+  git = gitIn(course.root);
+  git('init', '-q', '-b', 'main');
+  commitAll(course.root, 'starter');
+  git('tag', 'base');
+  file('answer.txt', '42');
+  commitAll(course.root, 'solution a');
+  git('tag', 'solution/a');
+  process.chdir(course.root);
+  const { code, out } = await replay();
+  assert.equal(code, 0, out);
+  assert.match(out, /\| a \| start \| s \| 0 \| 1 \| aucune \|/);
+  assert.match(out, /\| a \| solution \| s \| 1 \| 0 \| aucune \|/);
+});

@@ -1,4 +1,4 @@
-import { graphqlUrl, loadSession, loadState, saveState } from '../config.mjs';
+import { NO_SERVER, graphqlUrl, loadSession, loadState, saveState, serverScript } from '../config.mjs';
 import { formatResults, runChecks } from '../checks.mjs';
 import { describe } from '../git.mjs';
 import { gql, waitForServer } from '../graphql.mjs';
@@ -29,7 +29,10 @@ export async function run({ positionals: [labId, stepId], flags, io }) {
   const stepIds = stepId ? [stepId] : lab.steps;
   const config = loadSession();
   const reporter = createReporter({ config, enabled: !flags['no-report'] });
-  const url = graphqlUrl(flags.url);
+  // Sans serveur déclaré (formation front), rien n'est attendu et gql le dit.
+  const hasServer = serverScript() !== null;
+  const url = hasServer ? graphqlUrl(flags.url) : null;
+  const query = hasServer ? (q, options) => gql(url, q, options) : async () => { throw new Error(NO_SERVER); };
   const state = loadState();
   const results = [];
   let exit = 0;
@@ -52,13 +55,15 @@ export async function run({ positionals: [labId, stepId], flags, io }) {
     }
 
     let outcome = null;
-    try {
-      await waitForServer(url, SERVER_WAIT_MS);
-    } catch {
-      outcome = unreachable(url);
+    if (hasServer) {
+      try {
+        await waitForServer(url, SERVER_WAIT_MS);
+      } catch {
+        outcome = unreachable(url);
+      }
     }
     if (!outcome) {
-      outcome = await runChecks(step.checks, { url, gql: (query, options) => gql(url, query, options), state: {}, lab, step, io, startServer, runChecks });
+      outcome = await runChecks(step.checks, { url, gql: query, state: {}, lab, step, io, startServer, runChecks });
     }
 
     reporter.record('check.completed', {
