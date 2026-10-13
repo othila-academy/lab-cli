@@ -197,6 +197,21 @@ test('mauvais chemin : poignée de main refusée, avec le chemin demandé', asyn
   await assert.rejects(subscribe(url, Q), { message: new RegExp(`ne répond pas en WebSocket sur ${url.replaceAll('/', '\\/')}`) });
 });
 
+test('poignée de main sans réponse : le délai écoulé avant l’ouverture désigne la poignée de main', async () => {
+  // Le serveur garde la socket de la poignée de main sans jamais répondre ; le test la détruit à la fin.
+  const held = [];
+  const silent = http.createServer((_req, res) => res.end('{}'));
+  silent.on('upgrade', (_req, socket) => held.push(socket));
+  others.push(silent);
+  await new Promise((r) => silent.listen(0, '127.0.0.1', r));
+  const url = `ws://127.0.0.1:${silent.address().port}/graphql`;
+  try {
+    await assert.rejects(subscribe(url, Q, { ackTimeout: 200 }), { message: /ne répond pas en WebSocket sur / });
+  } finally {
+    for (const socket of held) socket.destroy();
+  }
+});
+
 test('pas d’ack : message, et plus de connexion', async () => {
   server = await startFakeWs({ ack: false });
   await assert.rejects(subscribe(server.url, Q, { ackTimeout: 200 }), { message: /n'a pas accepté la connexion en 0,2 s/ });

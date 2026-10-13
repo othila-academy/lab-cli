@@ -26,7 +26,8 @@ async function answers(httpUrl) {
 }
 
 async function explain(failure, url) {
-  if (failure.timeout) return noAck(failure.timeout);
+  // Délai écoulé sans même ouvrir la connexion : c'est la poignée de main qui ne répond pas, pas graphql-ws.
+  if (failure.timeout && failure.opened) return noAck(failure.timeout);
   if (!failure.opened) return (await answers(httpUrlOf(url))) ? handshakeRefused(url) : unreachable(httpUrlOf(url));
   return closedBeforeReady(failure.code, failure.reason);
 }
@@ -74,8 +75,11 @@ export async function subscribe(url, query, { variables, token, connectionParams
       finish();
     } else if (message.type === 'complete') finish();
   });
-  // Toujours suivi de close : c'est close qui conclut.
-  ws.addEventListener('error', () => {});
+  // Une connexion qui échoue avant d'ouvrir conclut sur error : Node 24 émet ensuite close (1006),
+  // Node 22 non, la socket y reste « en connexion ». Après l'ouverture, c'est close qui conclut.
+  ws.addEventListener('error', () => {
+    if (!opened) settle.reject({ opened: false });
+  });
   ws.addEventListener('close', (event) => {
     closed = { code: event.code, reason: event.reason };
     finish();
@@ -83,7 +87,7 @@ export async function subscribe(url, query, { variables, token, connectionParams
   });
 
   const timer = setTimeout(() => {
-    settle.reject({ timeout: ackTimeout });
+    settle.reject({ timeout: ackTimeout, opened });
     ws.close();
   }, ackTimeout);
   try {
