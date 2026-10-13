@@ -1,4 +1,5 @@
-import { NO_SERVER, graphqlUrl, loadSession, loadState, saveState, serverScript } from '../config.mjs';
+import { NO_SERVER, formation, graphqlUrl, loadSession, loadState, saveState, serverScript } from '../config.mjs';
+import { componentRunner } from '../component/runner.mjs';
 import { formatResults, runChecks } from '../checks.mjs';
 import { describe } from '../git.mjs';
 import { gql, waitForServer } from '../graphql.mjs';
@@ -25,7 +26,8 @@ const unreachable = (url) => ({
 
 export async function run({ positionals: [labId, stepId], flags, io }) {
   if (!labId) throw new Error(USAGE);
-  const lab = await loadLab(labId);
+  const f = formation();
+  const lab = await loadLab(labId, f);
   const stepIds = stepId ? [stepId] : lab.steps;
   const config = loadSession();
   const reporter = createReporter({ config, enabled: !flags['no-report'] });
@@ -63,7 +65,8 @@ export async function run({ positionals: [labId, stepId], flags, io }) {
       }
     }
     if (!outcome) {
-      outcome = await runChecks(step.checks, { url, gql: query, state: {}, lab, step, io, startServer, runChecks });
+      const components = componentRunner({ f, lab, step, graphqlUrl: url });
+      outcome = await runChecks(step.checks, { url, gql: query, state: {}, lab, step, io, startServer, runChecks, components });
     }
 
     reporter.record('check.completed', {
