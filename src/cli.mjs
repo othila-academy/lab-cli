@@ -68,6 +68,16 @@ export async function main(argv, io = terminalIo()) {
     return 3;
   }
   try {
+    // Un cours qui exige une version plus récente arrête toute commande, avant qu'elle lise un manifeste qu'elle
+    // ne comprend peut-être pas ; lab update fait exception, il recopie les labs puis avertit.
+    if (command !== 'update') {
+      const { projectRoot, versionProblemAt } = await import('./config.mjs');
+      const problem = versionProblemAt(projectRoot());
+      if (problem) {
+        io.err(problem);
+        return 3;
+      }
+    }
     const { run } = await load();
     return await run({ positionals, flags, io });
   } catch (error) {

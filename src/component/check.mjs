@@ -10,7 +10,8 @@ export function componentTest({ id, label, file, test = id, passesOnStart = fals
     throw new Error(`componentTest ${id} : file doit nommer un fichier de test .js, .jsx, .mjs, .ts ou .tsx du dossier du lab`);
   }
   const normalized = path.posix.normalize(file.replaceAll('\\', '/'));
-  if (path.posix.isAbsolute(normalized) || normalized === '..' || normalized.startsWith('../')) {
+  // Un chemin absolu, y compris Windows (C:\…, C:…), sortirait du dossier du lab.
+  if (path.posix.isAbsolute(normalized) || /^[A-Za-z]:/.test(normalized) || normalized === '..' || normalized.startsWith('../')) {
     throw new Error(`componentTest ${id} : file doit rester dans le dossier du lab : ${file}`);
   }
   return {

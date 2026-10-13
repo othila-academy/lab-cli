@@ -147,7 +147,8 @@ export function componentRunner({ f, lab, step, graphqlUrl = null }) {
       pending ??= runVitest({ f, labDir: lab.dir, files, graphqlUrl });
       const run = await pending;
       if (run.error) return run.error;
-      return outcomeOf(run.report, { file, test, labDir: lab.dir, root: f.root, clientDir: f.client.path });
+      // Chemins réels, comme ceux que rapporte Vitest : les messages restent relatifs à la racine du dépôt.
+      return outcomeOf(run.report, { file, test, labDir: lab.dir, root: realPath(f.root), clientDir: realPath(f.client.path) });
     }
   };
 }

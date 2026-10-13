@@ -217,4 +217,12 @@ test('lab update : un manifeste de forme future qui exige une version plus réce
   const io = captureIo();
   assert.equal(await main(['update'], io), 0, io.errors.join('\n'));
   assert.match(io.lines.join('\n'), /attention : ce cours demande @othila-academy\/lab 99\.0\.0 ou plus/);
+  // Le manifeste local a maintenant la forme future : un second update doit marcher aussi.
+  addLab('b', 'B');
+  course.write({ ...manifest(['a', 'b']), lab: '99.0.0', client: [{ dir: 'a' }, { dir: 'b' }] });
+  publish('lab b, forme future');
+  const again = captureIo();
+  assert.equal(await main(['update'], again), 0, again.errors.join('\n'));
+  assert.ok(existsSync(learnerFile('.othila-lab', 'labs', 'b', 'index.mjs')));
+  assert.match(again.lines.join('\n'), /attention : ce cours demande @othila-academy\/lab 99\.0\.0 ou plus/);
 });
