@@ -89,10 +89,11 @@ test('une étape mélangée : un seul lancement, checks reliés à leurs tests, 
   assert.equal(args[3], '--reporter=json');
   assert.match(args[4], /^--outputFile=/);
   assert.equal(realpathSync(cwd), realpathSync(clientDir));
-  assert.equal(env.LAB_CLIENT_DIR, clientDir);
-  assert.equal(env.LAB_DIR, path.join(course.home, 'labs', 'front'));
+  // Chemins réels : Vite les compare à sa liste d'accès.
+  assert.equal(env.LAB_CLIENT_DIR, realpathSync(clientDir));
+  assert.equal(env.LAB_DIR, realpathSync(path.join(course.home, 'labs', 'front')));
   assert.deepEqual(JSON.parse(env.LAB_TEST_FILES), ['tests/liste.test.jsx', 'tests/connexion.test.jsx']);
-  assert.equal(env.LAB_SETUP, path.join(course.home, 'shared', 'setup.js'));
+  assert.equal(env.LAB_SETUP, path.join(realpathSync(course.home), 'shared', 'setup.js')); // le fichier n'existe pas : son dossier parent est réel
   assert.equal(env.LAB_GRAPHQL_URL, null);
   assert.equal(env.NO_COLOR, '1');
 });

@@ -47,3 +47,8 @@ test('chemins par lien symbolique (/var ↔ /private/var) : la correspondance ti
   const report = { testResults: [{ name: path.join(realpathSync(real), file), status: 'passed', message: '', assertionResults: [{ ancestorTitles: [], fullName: 't', title: 't', status: 'passed', failureMessages: [] }] }] };
   assert.equal(outcomeOf(report, { ...where, labDir: link, file, test: 't' }), null);
 });
+
+test('un hook en échec laisse le test non joué : la cause du fichier est rendue', () => {
+  const report = { testResults: [{ name: path.join(where.labDir, file), status: 'failed', message: 'Error: le serveur ne répond pas\n    at x', assertionResults: [{ ancestorTitles: [], fullName: 't', title: 't', status: 'skipped', failureMessages: [] }] }] };
+  assert.equal(outcomeOf(report, { ...where, file, test: 't' }), 'le serveur ne répond pas');
+});

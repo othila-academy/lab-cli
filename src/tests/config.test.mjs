@@ -230,3 +230,9 @@ test('version minimale : formation() refuse un paquet trop ancien, sauf checkVer
   assert.equal(versionProblem({ lab: '0.9.0' }, '0.9.0'), null);
   assert.equal(versionProblem({ lab: null }, '0.1.0'), null);
 });
+
+test('version minimale : vérifiée avant la validation, pour un manifeste de forme future', () => {
+  course = makeCourse({ labs: { a: tinyLab() } });
+  course.write({ id: 'x', title: 'T', seances: [], lab: '99.0.0', client: [{ dir: 'a' }, { dir: 'b' }] });
+  assert.throws(() => formation(course.root), /ce cours demande @othila-academy\/lab 99\.0\.0 ou plus/);
+});

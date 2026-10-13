@@ -56,3 +56,10 @@ test('client à la racine du dépôt : chemins sans préfixe', () => {
 test('autre erreur de fichier : première ligne non vide', () => {
   assert.equal(fileFailure('\nquelque chose a cassé\ndétail', where), 'quelque chose a cassé');
 });
+
+test('paquet introuvable depuis un test du lab : le client doit être un workspace, ou ses dépendances à la racine', () => {
+  assert.equal(
+    fileFailure('Failed to resolve import "@testing-library/react" from "../../.othila-lab/labs/client-apollo/tests/liste.test.jsx". Does the file exist?', where),
+    "le paquet @testing-library/react est introuvable depuis .othila-lab/labs/client-apollo/tests/liste.test.jsx : installe-le en dépendance de développement du client, qui doit être un workspace du cours (ou installe-le à la racine du dépôt)"
+  );
+});

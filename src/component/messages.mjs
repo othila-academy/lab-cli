@@ -13,6 +13,11 @@ function shown(file, { root, clientDir }) {
 }
 const clientLabel = ({ root, clientDir }) => path.relative(root, clientDir).split(path.sep).join('/') || '.';
 const packageName = (spec) => spec.split('/').slice(0, spec.startsWith('@') ? 2 : 1).join('/');
+// Un fichier hors du client (test du lab, préparation du cours) résout ses imports depuis la racine du dépôt.
+const outsideClient = (file, { clientDir }) => {
+  const relative = path.relative(clientDir, path.resolve(clientDir, file));
+  return relative.startsWith('..') || path.isAbsolute(relative);
+};
 
 // Un test en échec : `AssertionError: <message>: expected …` et `Error: <message>` rendent le message de l'auteur.
 export function testFailure(failureMessage) {
@@ -36,6 +41,9 @@ export function fileFailure(message, where) {
       const missing = path.join(path.dirname(path.resolve(where.clientDir, importer)), spec);
       return `${shown(missing, where)} introuvable (importé par ${shown(importer, where)})`;
     }
+    if (outsideClient(importer, where)) {
+      return `le paquet ${packageName(spec)} est introuvable depuis ${shown(importer, where)} : installe-le en dépendance de développement du client, qui doit être un workspace du cours (ou installe-le à la racine du dépôt)`;
+    }
     return `le paquet ${packageName(spec)} n'est pas installé pour le client (${clientLabel(where)})`;
   }
   if (/^Transform failed/.test(head)) {
@@ -46,5 +54,5 @@ export function fileFailure(message, where) {
     if (esbuild) return `${shown(esbuild[1], where)} ne compile pas (ligne ${esbuild[2]}) : ${esbuild[3]}`;
     return `un fichier ne compile pas : ${text[1] ?? head}`;
   }
-  return head;
+  return testFailure(head);
 }
