@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node: [20, 24]
+        node: [22, 24]
     steps:
       # Actions épinglées par empreinte de commit, suivies par Dependabot.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -25,7 +25,7 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - run: npm ci --ignore-scripts
-      # scripts/run-tests.mjs liste les fichiers lui-même : la même commande sur Node 20 et au-delà.
+      # scripts/run-tests.mjs liste les fichiers lui-même : la même commande sur Node 22 et au-delà.
       - run: npm test
       - run: node bin/lab.mjs --help
       - run: node scripts/pack-contents.mjs

@@ -1,4 +1,4 @@
-// Lance la suite du paquet sur toutes les versions annoncées (Node ≥ 20) et tous les systèmes :
+// Lance la suite du paquet sur toutes les versions annoncées (Node ≥ 22) et tous les systèmes :
 // node --test n'accepte des motifs qu'à partir de Node 21, et cmd.exe ne développe pas les motifs.
 // On liste donc les fichiers nous-mêmes. Hors de « files », ce script n'est pas publié.
 import { spawnSync } from 'node:child_process';

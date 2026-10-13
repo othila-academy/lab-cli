@@ -3,7 +3,7 @@
 import { execFileSync } from 'node:child_process';
 import { getJson, proxyFor } from './http.mjs';
 
-export const MIN_NODE_MAJOR = 20;
+export const MIN_NODE_MAJOR = 22;
 export const RECOMMENDED_NODE_MAJOR = 24;
 export const REQUIRED_CHECKS = ['node-version', 'npm-registry', 'endpoint'];
 const DEFAULT_REGISTRY = 'https://registry.npmjs.org/-/ping';
