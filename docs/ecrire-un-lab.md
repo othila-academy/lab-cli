@@ -327,6 +327,53 @@ Quand les tests ne peuvent pas tourner, chaque check de composant de l'étape é
 
 **Au rejeu**, `npm ci` installe le client s'il est un workspace du cours. Au départ d'un lab qui crée le client, le client absent fait échouer ses checks de composants, comme attendu ; sur la solution, ils passent contre le serveur que démarre le rejeu.
 
+## Un lab de subscription
+
+Un check s'abonne comme un client : `subscribe` ouvre une connexion WebSocket (protocole graphql-transport-ws, celui de graphql-ws) à l'adresse du serveur GraphQL du check, `http` devenant `ws` (`--url` et le rejeu suivent). lab-cli ferme les abonnements du check quand il se termine, qu'il passe ou non.
+
+```js
+// .othila-lab/labs/subscriptions/souscrire.mjs
+import { assert } from '@othila-academy/lab';
+
+const CREATED = 'subscription { eventCreated { id title organizer { name } } }';
+
+export const checks = [
+  {
+    id: 'recoit',
+    label: 'un abonné à eventCreated reçoit l’évènement créé ensuite, en moins de 3 s',
+    run: async ({ gql, subscribe }) => {
+      const sub = await subscribe(CREATED);
+      const created = await createAs(gql, 'bilal');            // une aide du cours
+      const message = await sub.next({ timeout: 3000 });
+      assert(message, 'Abonné, rien reçu en 3 s : createEvent publie-t-il sur le même canal que celui de la subscription ?');
+      assert(!message.errors, `La subscription répond « ${message.errors?.[0]?.message} ».`);
+      assert(message.data.eventCreated.id === created.id, 'L’abonné a reçu un autre évènement que celui créé.');
+    }
+  },
+  {
+    id: 'un-seul',
+    label: 'l’abonné reçoit l’évènement une fois',
+    run: async ({ gql, subscribe }) => {
+      const sub = await subscribe(CREATED);
+      await createAs(gql, 'bilal');
+      assert(await sub.next({ timeout: 3000 }), 'Abonné, rien reçu : regarde le check recoit.');
+      assert(!(await sub.next({ timeout: 500 })), 'L’abonné a reçu l’évènement deux fois : publies-tu à deux endroits ?');
+    }
+  }
+];
+```
+
+**Les règles d'écriture.**
+
+- **Déclencher après le retour de `subscribe`** : il ne rend la main qu'une fois l'abonnement prêt (connexion acceptée, abonnement envoyé, puis un court délai, `ready`, 200 ms par défaut, car graphql-ws n'accuse pas réception d'un abonnement).
+- **Toujours passer un délai à `next`** (3000 ms par défaut) ; `null` veut dire « rien reçu » : le check écrit alors son message.
+- **Vérifier l'absence de doublon** par un second `next` au délai court (500 ms).
+- **Une erreur GraphQL** (champ inconnu, validation) arrive comme `{ errors }`, à traduire comme une réponse de `gql`.
+- **Un abonné par connexion** : deux appels à `subscribe` font deux clients, comme deux onglets.
+- **Jeton** : `subscribe(query, { token })` l'envoie dans les `connectionParams` (`authorization: 'Bearer …'`), que le serveur lit dans `onConnect` ou `context`.
+- Après `complete`, une erreur ou une coupure, `next` rend `null` tout de suite ; `sub.closed` donne alors `{ code, reason }`.
+- Hors d'un check, `subscribe(url, query, options)` est exporté par `@othila-academy/lab` (adresse `ws://` explicite) ; il faut alors appeler `sub.close()`.
+
 ## Mettre à jour un lab
 
 ### Ce qui change, et ce qu'il faut refaire
@@ -423,3 +470,6 @@ Le retirer de `formation.json` et supprimer son dossier `.othila-lab/labs/<id>/`
 | `la session X existe et n'est pas simulée` | `lab replay --session` ou le simulateur visent une vraie session : choisir un autre code, par exemple `SIM-REPLAY` |
 | `inscription refusée (HTTP 409) : session clôturée` | la session est clôturée : le formateur peut la rouvrir depuis sa console si c'est une erreur |
 | des évènements rejetés en `session_closed` dans `rejected.jsonl` | ils sont arrivés plus de 24 heures après la clôture ; ils ne comptent plus dans l'export |
+| Un check de subscription échoue sur « Le serveur ne répond pas en WebSocket sur ws://… » | Le serveur répond en HTTP mais pas en WebSocket sur ce chemin : `startStandaloneServer` ne gère pas les WebSockets ; ouvrir un serveur `ws` avec `useServer` de graphql-ws, branché sur le même serveur HTTP et le même chemin |
+| « n'a pas accepté la connexion en 3 s (connection_ack attendu) » | Une WebSocket est ouverte, mais rien ne parle graphql-ws dessus : `useServer({ schema }, wsServer)` manque |
+| « refuse la connexion (4403) » | `onConnect` du serveur a rejeté la connexion : il reçoit les `connectionParams` (le jeton passé par `subscribe(query, { token })`) |
