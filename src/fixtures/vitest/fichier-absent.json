@@ -1,0 +1,11 @@
+{
+  "success": false,
+  "testResults": [
+    {
+      "name": "/cours/.othila-lab/labs/client-apollo/tests/liste.test.jsx",
+      "status": "failed",
+      "message": "Failed to resolve import \"@client/src/EventsList.jsx\" from \"../../.othila-lab/labs/client-apollo/tests/liste.test.jsx\". Does the file exist?",
+      "assertionResults": []
+    }
+  ]
+}

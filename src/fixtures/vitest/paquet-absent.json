@@ -1,0 +1,11 @@
+{
+  "success": false,
+  "testResults": [
+    {
+      "name": "/cours/.othila-lab/labs/client-apollo/tests/liste.test.jsx",
+      "status": "failed",
+      "message": "Failed to resolve import \"apollo-inexistant\" from \"src/apollo.js\". Does the file exist?",
+      "assertionResults": []
+    }
+  ]
+}

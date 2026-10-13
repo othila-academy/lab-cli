@@ -1,0 +1,37 @@
+{
+  "success": false,
+  "testResults": [
+    {
+      "name": "/cours/.othila-lab/labs/client-apollo/tests/liste.test.jsx",
+      "status": "failed",
+      "message": "",
+      "assertionResults": [
+        {
+          "ancestorTitles": [],
+          "fullName": "liste-affiche",
+          "title": "liste-affiche",
+          "status": "failed",
+          "failureMessages": [
+            "Invariant Violation: ApolloProvider was not passed a client instance. Make sure you pass in your client via the \"client\" prop.\n    at newInvariantError (file:///cours/node_modules/@apollo/client/utilities/invariant/index.js:59:12)\n    at invariant (file:///cours/node_modules/@apollo/client/utilities/invariant/index.js:18:15)"
+          ]
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "url-env",
+          "title": "url-env",
+          "status": "passed",
+          "failureMessages": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "echec-volontaire",
+          "title": "echec-volontaire",
+          "status": "failed",
+          "failureMessages": [
+            "AssertionError: Message en français pour l'étudiant: expected 1 to be 2 // Object.is equality\n    at /cours/.othila-lab/labs/client-apollo/tests/liste.test.jsx:21:53\n    at file:///cours/node_modules/vitest/dist/chunks/run.Cm2sd7-x.js:1632:35"
+          ]
+        }
+      ]
+    }
+  ]
+}

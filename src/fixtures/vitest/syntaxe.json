@@ -1,0 +1,11 @@
+{
+  "success": false,
+  "testResults": [
+    {
+      "name": "/cours/.othila-lab/labs/client-apollo/tests/liste.test.jsx",
+      "status": "failed",
+      "message": "Transform failed with 1 error:\n\n\u001b[31m[PARSE_ERROR] \u001b[0mUnexpected token. Did you mean `{'}'}` or `&rbrace;`?\n   \u001b[38;5;246m╭\u001b[0m\u001b[38;5;246m─\u001b[0m\u001b[38;5;246m[\u001b[0m src/EventsList.jsx:1:52 \u001b[38;5;246m]\u001b[0m\n   \u001b[38;5;246m│\u001b[0m\n \u001b[38;5;246m1 │\u001b[0m \u001b[38;5;249me\u001b[0m\u001b[38;5;249mx\u001b[0m\u001b[38;5;249mp\u001b[0m\u001b[38;5;249mo\u001b[0m\u001b[38;5;249mr\u001b[0m\u001b[38;5;249mt\u001b[0m\u001b[38;5;249m \u001b[0m\u001b[38;5;249md\u001b[0m\u001b[38;5;249me\u001b[0m\u001b[38;5;249mf\u001b[0m\u001b[38;5;249ma\u001b[0m\u001b[38;5;249mu\u001b[0m\u001b[38;5;249ml\u001b[0m\u001b[38;5;249mt\u001b[0m\u001b[38;5;249m \u001b[0m\u001b[38;5;249mf\u001b[0m\u001b[38;5;249mu\u001b[0m\u001b[38;5;249mn\u001b[0m\u001b[38;5;249mc\u001b[0m\u001b[38;5;249mt\u001b[0m\u001b[38;5;249mi\u001b[0m\u001b[38;5;249mo\u001b[0m\u001b[38;5;249mn\u001b[0m\u001b[38;5;249m \u001b[0m\u001b[38;5;249mE\u001b[0m\u001b[38;5;249mv\u001b[0m\u001b[38;5;249me\u001b[0m\u001b[38;5;249mn\u001b[0m\u001b[38;5;249mt\u001b[0m\u001b[38;5;249ms\u001b[0m\u001b[38;5;249mL\u001b[0m\u001b[38;5;249mi\u001b[0m\u001b[38;5;249ms\u001b[0m\u001b[38;5;249mt\u001b[0m\u001b[38;5;249m(\u001b[0m\u001b[38;5;249m)\u001b[0m\u001b[38;5;249m \u001b[0m\u001b[38;5;249m{\u001b[0m\u001b[38;5;249m \u001b[0m\u001b[38;5;249mr\u001b[0m\u001b[38;5;249me\u001b[0m\u001b[38;5;249mt\u001b[0m\u001b[38;5;249mu\u001b[0m\u001b[38;5;249mr\u001b[0m\u001b[38;5;249mn\u001b[0m\u001b[38;5;249m \u001b[0m\u001b[38;5;249m<\u001b[0m\u001b[38;5;249mu\u001b[0m\u001b[38;5;249ml\u001b[0m\u001b[38;5;249m>\u001b[0m\u001b[38;5;249m \u001b[0m\u001b[38;5;249m}\u001b[0m\n \u001b[38;5;240m  │\u001b[0m                                                    │ \n \u001b[38;5;240m  │\u001b[0m                                                    ╰─ \n\u001b[38;5;246m───╯\u001b[0m\n",
+      "assertionResults": []
+    }
+  ]
+}

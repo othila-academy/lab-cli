@@ -1,0 +1,35 @@
+{
+  "success": false,
+  "testResults": [
+    {
+      "name": "/cours/.othila-lab/labs/client-apollo/tests/liste.test.jsx",
+      "status": "failed",
+      "message": "",
+      "assertionResults": [
+        {
+          "ancestorTitles": [],
+          "fullName": "liste-affiche",
+          "title": "liste-affiche",
+          "status": "passed",
+          "failureMessages": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "url-env",
+          "title": "url-env",
+          "status": "passed",
+          "failureMessages": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "echec-volontaire",
+          "title": "echec-volontaire",
+          "status": "failed",
+          "failureMessages": [
+            "AssertionError: Message en français pour l'étudiant: expected 1 to be 2 // Object.is equality\n    at /cours/.othila-lab/labs/client-apollo/tests/liste.test.jsx:21:53\n    at file:///cours/node_modules/vitest/dist/chunks/run.Cm2sd7-x.js:1632:35"
+          ]
+        }
+      ]
+    }
+  ]
+}
