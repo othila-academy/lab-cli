@@ -109,3 +109,29 @@ test('check --json sans --answer : aucune question posée, prédiction nulle, ch
   assert.deepEqual(results[0].passed, ['typename']);
   assert.equal(loadState().predictions['demo/one'], undefined);
 });
+
+test('serveur du fil rouge qui répond par une erreur : code 1, server-error, statut et début de réponse, pas de « lance npm run »', async () => {
+  const http = await import('node:http');
+  const broken = http.createServer((req, res) => {
+    req.resume();
+    req.on('end', () => {
+      res.writeHead(500, { 'content-type': 'text/html' });
+      res.end('req.body is not set; this probably means you forgot to set up the `json` middleware');
+    });
+  });
+  await new Promise((resolve) => broken.listen(0, '127.0.0.1', resolve));
+  const url = `http://127.0.0.1:${broken.address().port}/graphql`;
+  try {
+    const io = captureIo();
+    assert.equal(await main(['check', 'demo', '--url', url, '--answer', '2'], io), 1);
+    const completed = endpoint.batches[0].events.find((e) => e.type === 'check.completed');
+    assert.equal(completed.payload.failed[0].id, 'server-error');
+    const text = io.lines.join('\n');
+    assert.match(text, /répond HTTP 500 sur http:\/\/127\.0\.0\.1:\d+\/graphql/);
+    assert.match(text, /req\.body is not set/);
+    assert.match(text, /console du serveur/);
+    assert.doesNotMatch(text, /npm run start:server-js/);
+  } finally {
+    await new Promise((resolve) => broken.close(resolve));
+  }
+});

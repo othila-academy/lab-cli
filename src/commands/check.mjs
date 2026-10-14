@@ -18,9 +18,14 @@ async function askPrediction(io, prediction, answerFlag) {
   return io.question('ta prédiction :');
 }
 
-const unreachable = (url) => ({
+// Le serveur ne répond pas (code 2), ou répond par une erreur : c'est alors au code de l'apprenant de changer (code 1).
+const unreachable = (url, error) => ({
   passed: [],
-  failed: [{ id: 'server-unreachable', label: 'le serveur du fil rouge répond', message: unreachableMessage(url) }],
+  failed: [
+    error?.status
+      ? { id: 'server-error', label: 'le serveur du fil rouge répond', message: error.message }
+      : { id: 'server-unreachable', label: 'le serveur du fil rouge répond', message: unreachableMessage(url) }
+  ],
   durationMs: 0
 });
 
@@ -60,8 +65,8 @@ export async function run({ positionals: [labId, stepId], flags, io }) {
     if (hasServer) {
       try {
         await waitForServer(url, SERVER_WAIT_MS);
-      } catch {
-        outcome = unreachable(url);
+      } catch (error) {
+        outcome = unreachable(url, error);
       }
     }
     if (!outcome) {
