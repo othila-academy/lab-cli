@@ -58,13 +58,13 @@ test('publie le catalogue du cours sous la formation déclarée, avec la clé fo
   config({ id: 'graphql', title: 'GraphQL' });
   const { code, out } = await run('catalog', '--publish', '--endpoint', endpoint.url);
   assert.equal(code, 0);
-  assert.match(out, /formation graphql publiée : 1 lab\(s\), 1 étape\(s\)/);
+  assert.match(out, /formation graphql publiée : 2 lab\(s\), 5 étape\(s\)/);
   const [published] = endpoint.formations;
   assert.equal(published.id, 'graphql');
   assert.equal(published.authorization, 'Bearer cle-formateur');
   assert.equal(published.body.title, 'GraphQL');
-  assert.deepEqual(published.body.catalog.map((l) => l.id), ['demo']);
-  assert.equal(published.body.catalog[0].seance, 'Séance 0 · Démonstration');
+  assert.deepEqual(published.body.catalog.map((l) => l.id), ['prise-en-main', 'demo']);
+  assert.equal(published.body.catalog[1].seance, 'Séance 0 · Démonstration');
 });
 
 test('l’adresse vient de OTHILA_LAB_URL, puis de la configuration, si --endpoint manque', async () => {
@@ -107,7 +107,7 @@ test('les brouillons, hors du manifeste, ne partent jamais et sont signalés dan
   cpSync(path.join(project, '.othila-lab', 'labs', 'demo'), path.join(project, '.othila-lab', 'labs', 'brouillon'), { recursive: true });
   config({ id: 'graphql', title: 'GraphQL' });
   assert.equal((await run('catalog', '--publish', '--endpoint', endpoint.url)).code, 0);
-  assert.deepEqual(endpoint.formations[0].body.catalog.map((l) => l.id), ['demo']);
+  assert.deepEqual(endpoint.formations[0].body.catalog.map((l) => l.id), ['prise-en-main', 'demo']);
   const io = captureIo();
   Object.assign(io, { isTTY: true });
   assert.equal(await main(['catalog'], io), 0);

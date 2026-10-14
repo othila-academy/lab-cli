@@ -5,6 +5,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { formation } from './config.mjs';
+import { BUILTIN_DIR, BUILTIN_IDS, BUILTIN_SEANCE, isBuiltin, reservedMessage } from './builtin.mjs';
 import { DEFAULT_STEP_POINTS } from './points.mjs';
 
 const SLUG = /^[a-z0-9][a-z0-9-]{0,63}$/;
@@ -13,6 +14,10 @@ const text = (value) => (typeof value === 'string' && value.trim() ? value.trim(
 
 // Les labs de la formation, dans l'ordre du manifeste, chacun avec le titre de sa séance.
 export const listLabs = (f = formation()) => f.seances.flatMap((s) => s.labs.map((id) => ({ id, seance: s.title })));
+
+// Les labs du catalogue : ceux fournis par lab-cli, en séance 0, puis ceux du manifeste.
+// La chaîne (chainOf, catchup, replay) ne prend que ces derniers : listLabs.
+export const catalogLabs = (f = formation()) => [...BUILTIN_IDS.map((id) => ({ id, seance: BUILTIN_SEANCE })), ...listLabs(f)];
 
 // Les brouillons : un dossier de lab valide que le manifeste ne cite pas. Jamais publiés.
 export function listDrafts(f = formation()) {
@@ -37,11 +42,23 @@ function mineOf(mine, index, root) {
   return { template: mine.template, target: mine.target, path: target };
 }
 
+// Les fichiers de travail d'un lab intégré, copiés par lab start dans son bac à sable.
+const SANDBOX_FILE = /^[a-z0-9][a-z0-9.-]{0,63}$/;
+function sandboxOf(sandbox, index) {
+  if (sandbox === undefined) return [];
+  if (!Array.isArray(sandbox) || sandbox.some((name) => typeof name !== 'string' || !SANDBOX_FILE.test(name))) {
+    throw new Error(`${index} : sandbox doit lister des noms de fichiers du dossier du lab`);
+  }
+  return sandbox;
+}
+
 export async function loadLab(id, f = formation()) {
-  const labPath = path.join(f.labsDir, id);
+  const builtIn = isBuiltin(id);
+  if (builtIn && existsSync(path.join(f.labsDir, id))) throw new Error(reservedMessage(id));
+  const labPath = builtIn ? path.join(BUILTIN_DIR, id) : path.join(f.labsDir, id);
   const index = path.join(labPath, 'index.mjs');
   if (!SLUG.test(id) || !existsSync(index)) {
-    const known = [...listLabs(f).map((l) => l.id), ...listDrafts(f)];
+    const known = [...catalogLabs(f).map((l) => l.id), ...listDrafts(f)];
     throw new Error(`lab inconnu : ${id} (disponibles : ${known.join(', ') || 'aucun'}) ; npx lab update pour récupérer les nouveaux labs`);
   }
   const mod = await load(index);
@@ -55,8 +72,10 @@ export async function loadLab(id, f = formation()) {
     title: mod.title,
     steps: mod.steps,
     dir: labPath,
-    mine: mineOf(mod.mine, index, f.root),
-    seance: listLabs(f).find((l) => l.id === id)?.seance ?? null,
+    builtIn,
+    sandbox: builtIn ? sandboxOf(mod.sandbox, index) : [],
+    mine: builtIn ? null : mineOf(mod.mine, index, f.root),
+    seance: builtIn ? BUILTIN_SEANCE : listLabs(f).find((l) => l.id === id)?.seance ?? null,
     duration: text(mod.duration),
     summary: text(mod.summary),
     objectives
@@ -96,7 +115,7 @@ export async function describeLab(id, f = formation()) {
 // Le catalogue publié comme formation ou passé à create-session : les labs du manifeste, dans l'ordre.
 export async function catalog(f = formation()) {
   const labs = [];
-  for (const { id } of listLabs(f)) {
+  for (const { id } of catalogLabs(f)) {
     const lab = await loadLab(id, f);
     const steps = [];
     for (const stepId of lab.steps) {

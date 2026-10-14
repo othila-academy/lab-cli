@@ -81,7 +81,7 @@ test('check annonce les points à acquérir ; submit au vert les acquiert et don
   const checked = await run(['check', 'n1', 'observe', '--url', graphql.url, '--no-report']);
   assert.match(checked.out, /Étape validée\. Explique en deux phrases pour acquérir 180 points : npx lab submit n1 observe/);
   const submitted = await run(['submit', 'n1', 'observe', '--text', 'Parce que.', '--no-report']);
-  assert.match(submitted.out, /\+180 points · n1 : 180 \/ 300 · formation : 180 \/ 300/);
+  assert.match(submitted.out, /\+180 points · n1 : 180 \/ 300 · formation : 180 \/ 340/);
   assert.equal(loadState().steps['n1/observe'].points, 180);
 });
 
@@ -123,7 +123,7 @@ test('progress : points par étape, total du lab, total de la formation', async 
   assert.match(out, /^ {2}n1 · N\+1 · 200 \/ 300$/m);
   assert.match(out, /^ {4}observe +soumis +1\/1 +200\/200$/m);
   assert.match(out, /^ {4}fix +— +—\/100$/m);
-  assert.match(out, /^Total : 200 \/ 300$/m);
+  assert.match(out, /^Total : 200 \/ 340$/m);
 });
 
 test('un check injoignable après le vert compte comme un échec : soumettre ensuite n’acquiert rien, comme côté serveur', async () => {

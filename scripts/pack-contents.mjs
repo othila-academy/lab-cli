@@ -8,7 +8,8 @@ const ALLOWED = [
   /^bin\/[^/]+\.mjs$/,
   /^src\/(?!tests\/|fixtures\/|test-helpers\/).+\.mjs$/,
   /^contrat\/evenements-v1\.md$/, /^contrat\/exemples\/[^/]+\.json$/,
-  /^points\/(regle\.md|exemples\.json)$/
+  /^points\/(regle\.md|exemples\.json)$/,
+  /^labs\/[a-z0-9-]+\/[^/]+\.(mjs|json)$/
 ];
 
 // Les chemins qui n'ont rien à faire dans le paquet publié, dans l'ordre reçu.

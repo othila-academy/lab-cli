@@ -1,11 +1,11 @@
-import { describeLab, listLabs } from './labs.mjs';
+import { catalogLabs, describeLab } from './labs.mjs';
 
 // Les points de cette machine, lab par lab et pour toute la formation, sur leur maximum.
 export async function totals(f, state) {
   const labs = new Map();
   let points = 0;
   let max = 0;
-  for (const { id } of listLabs(f)) {
+  for (const { id } of catalogLabs(f)) {
     const lab = await describeLab(id, f);
     const entry = { points: 0, max: 0 };
     for (const s of lab.steps) {

@@ -1,5 +1,6 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { isBuiltin, reservedMessage } from './builtin.mjs';
 
 // Un seul domaine pour la remontée. Le manifeste peut le surcharger, l'environnement aussi.
 export const DEFAULT_ENDPOINT = 'https://lab.othila-academy.com';
@@ -82,6 +83,7 @@ function validate(raw, dir, root) {
     seance.labs.forEach((id, j) => {
       const field = `seances[${i}].labs[${j}]`;
       if (typeof id !== 'string' || !SLUG.test(id)) fail(field, 'identifiant de lab attendu (minuscules, chiffres et tirets)');
+      if (isBuiltin(id)) fail(field, reservedMessage(id));
       if (seen.has(id)) fail(field, `${id} est déjà cité`);
       if (!existsSync(path.join(dir, id, 'index.mjs'))) fail(field, `${id} n'a pas de dossier ${HOME}/labs/${id}/ avec index.mjs`);
       seen.add(id);
