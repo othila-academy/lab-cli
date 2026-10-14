@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { HOME } from './config.mjs';
 import { git } from './git.mjs';
+import { alignPin, PIN_FILES } from './pin.mjs';
 
 const PACKAGE = '@othila-academy/lab';
 // Les définitions, sans l'état local de l'apprenant, même s'il a été suivi par erreur.
@@ -61,12 +62,19 @@ export function updateDefinitions({ cwd, f, io }) {
   // Ajouts, modifications et retraits, dans l'index et l'arbre ; local/ n'est pas touché.
   git(['restore', `--source=${ref}`, '--staged', '--worktree', '--', ...DEFINITIONS], cwd);
   const changed = git(['diff', '--cached', '--name-only', '--', ...DEFINITIONS], cwd) !== '';
-  // Un commit limité à .othila-lab/ : ce que l'apprenant a indexé ailleurs reste indexé, hors du commit.
-  if (changed) git(['commit', '--quiet', '--no-verify', '-m', `labs à jour (${branch}@${sha})`, '--', ...DEFINITIONS], cwd);
+  // La version de lab-cli suit la référence, dans le même commit que les définitions (package.json et lock, tout ou rien).
+  const pinned = alignPin(`refs/remotes/${ref}`, cwd);
+  // Un commit limité à .othila-lab/ (et à l'épinglage) : ce que l'apprenant a indexé ailleurs reste indexé, hors du commit.
+  if (changed || pinned) {
+    const message = `labs à jour (${branch}@${sha})${pinned ? `, lab-cli ${pinned.version}` : ''}`;
+    git(['commit', '--quiet', '--no-verify', '-m', message, '--', ...DEFINITIONS, ...(pinned ? PIN_FILES : [])], cwd);
+  }
 
   const versions = packageVersions(ref, cwd);
   if (versions && versions.wanted !== versions.installed) {
-    io.out(`le cours utilise ${PACKAGE} ${versions.wanted} (installé : ${versions.installed}) : npm install --save-dev --save-exact ${PACKAGE}@${versions.wanted}`);
+    io.out(pinned
+      ? `lab-cli ${versions.wanted} épinglée comme sur ${branch} : npm install`
+      : `le cours utilise ${PACKAGE} ${versions.wanted} (installé : ${versions.installed}) : npm install --save-dev --save-exact ${PACKAGE}@${versions.wanted}`);
   }
-  return { changed, offline: status === 'offline', sha };
+  return { changed, pinned, offline: status === 'offline', sha };
 }
