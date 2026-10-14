@@ -100,3 +100,81 @@ test('lab init : my-project part de base et passe aussitôt à la version de mai
   assert.equal(pinOf(published.learnerDir), '0.11.0');
   assert.doesNotMatch(io.lines.join('\n'), /npm install/);
 });
+
+test('commit des labs en échec : l’épinglage est défait, rien ne reste indexé', async () => {
+  setup();
+  installed(published.learnerDir, '0.10.1');
+  const before = readFileSync(path.join(published.learnerDir, 'package.json'), 'utf8');
+  const saved = process.env.GIT_AUTHOR_DATE;
+  process.env.GIT_AUTHOR_DATE = 'pas une date';
+  try {
+    assert.notEqual(await main(['update'], captureIo()), 0);
+  } finally {
+    if (saved === undefined) delete process.env.GIT_AUTHOR_DATE;
+    else process.env.GIT_AUTHOR_DATE = saved;
+  }
+  assert.equal(published.learner('status', '--porcelain', '--', 'package.json', 'package-lock.json'), '');
+  assert.equal(readFileSync(path.join(published.learnerDir, 'package.json'), 'utf8'), before);
+});
+
+test('lock ignoré par git (non suivi) : rien n’est réécrit', async () => {
+  setup();
+  installed(published.learnerDir, '0.10.1');
+  published.learner('rm', '-q', '--cached', 'package-lock.json');
+  writeFileSync(path.join(published.learnerDir, '.gitignore'), 'node_modules/\npackage-lock.json\n');
+  published.learner('commit', '-qam', 'lock ignoré');
+  const before = readFileSync(path.join(published.learnerDir, 'package.json'), 'utf8');
+  const io = captureIo();
+  assert.equal(await main(['update'], io), 0, io.errors.join('\n'));
+  assert.equal(readFileSync(path.join(published.learnerDir, 'package.json'), 'utf8'), before);
+  assert.equal(published.learner('status', '--porcelain'), '');
+});
+
+test('package.json indexé sans commit : rien n’est réécrit ni commité', async () => {
+  setup();
+  installed(published.learnerDir, '0.10.1');
+  const mine = text({ name: 'cours', private: true, devDependencies: { [P]: '0.10.1', zod: '3.0.0' } });
+  writeFileSync(path.join(published.learnerDir, 'package.json'), mine);
+  published.learner('add', 'package.json');
+  assert.equal(await main(['update'], captureIo()), 0);
+  assert.equal(readFileSync(path.join(published.learnerDir, 'package.json'), 'utf8'), mine);
+  assert.equal(published.learner('status', '--porcelain', '--', 'package.json'), 'M  package.json');
+});
+
+test('branche sans lock : rien n’est aligné, le message de version reste', async () => {
+  setup();
+  installed(published.learnerDir, '0.10.1');
+  published.learner('rm', '-q', 'package-lock.json');
+  published.learner('commit', '-qm', 'sans lock');
+  const io = captureIo();
+  assert.equal(await main(['update'], io), 0);
+  assert.equal(pinOf(published.learnerDir), '0.10.1');
+  assert.match(io.lines.join('\n'), /npm install --save-dev --save-exact @othila-academy\/lab@0\.11\.0/);
+});
+
+test('seul l’épinglage change : lab update le dit, pas « labs déjà à jour »', async () => {
+  setup();
+  installed(published.learnerDir, '0.11.0');
+  const io = captureIo();
+  assert.equal(await main(['update'], io), 0);
+  const out = io.lines.join('\n');
+  assert.doesNotMatch(out, /^labs déjà à jour$/m);
+  assert.match(out, /lab-cli épinglée en 0\.11\.0, comme sur main/);
+});
+
+test('un manifeste d’avant 0.11 qui cite prise-en-main ne bloque pas lab update', async () => {
+  course = makeCourse({ labs: { 'prise-en-main': tinyLab('Ancien tuto') } });
+  writeFileSync(path.join(course.home, '.gitignore'), 'local/\n');
+  writeFileSync(path.join(course.root, '.gitignore'), 'node_modules/\n');
+  // Le manifeste d'avant 0.11 est écrit à la main : makeCourse le validerait sinon.
+  published = publishCourse(course);
+  course.write({ id: 'cours-test', title: 'Cours de test', seances: [{ title: 'S1', labs: ['tuto'] }] });
+  rmSync(path.join(course.home, 'labs', 'prise-en-main'), { recursive: true });
+  mkdirSync(path.join(course.home, 'labs', 'tuto'), { recursive: true });
+  for (const [name, content] of Object.entries(tinyLab('Tuto'))) writeFileSync(path.join(course.home, 'labs', 'tuto', name), content);
+  published.publish('renomme le lab');
+  process.chdir(published.learnerDir);
+  const io = captureIo();
+  assert.equal(await main(['update'], io), 0, io.errors.join('\n'));
+  assert.match(readFileSync(path.join(published.learnerDir, '.othila-lab', 'formation.json'), 'utf8'), /"tuto"/);
+});

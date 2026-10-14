@@ -19,9 +19,13 @@ const parse = (text) => {
 };
 // Le champ qui déclare lab-cli : devDependencies, sinon dependencies ; null s'il n'y est pas.
 const fieldOf = (deps) => (deps?.devDependencies?.[PACKAGE] !== undefined ? 'devDependencies' : deps?.dependencies?.[PACKAGE] !== undefined ? 'dependencies' : null);
-// L'indentation du fichier d'origine (npm écrit deux espaces) et son saut de ligne final.
+// L'indentation du fichier d'origine (npm écrit deux espaces), ses fins de ligne (CRLF sous Windows) et son saut de ligne final.
 const indentOf = (text) => /^\{\r?\n([ \t]+)"/.exec(text)?.[1] ?? 2;
-const serialize = (value, text) => `${JSON.stringify(value, null, indentOf(text))}${text.endsWith('\n') ? '\n' : ''}`;
+const serialize = (value, text) => {
+  const eol = text.includes('\r\n') ? '\r\n' : '\n';
+  const body = JSON.stringify(value, null, indentOf(text)).replace(/\n/g, eol);
+  return `${body}${text.endsWith('\n') ? eol : ''}`;
+};
 
 // Calcule l'alignement sans rien écrire : { from, version, files } ou null s'il n'y a rien à faire, ou rien de sûr.
 export function planPin({ refPackage, refLock, branchPackage, branchLock }) {
@@ -42,7 +46,14 @@ export function planPin({ refPackage, refLock, branchPackage, branchLock }) {
 
   pkg[field][PACKAGE] = version;
   root[rootField][PACKAGE] = version;
-  lock.packages[LOCK_KEY] = entry;
+  // L'entrée de la référence, avec le marqueur dev de la branche (lab-cli peut y être en dependencies).
+  const copy = { ...entry };
+  if ('dev' in lock.packages[LOCK_KEY]) copy.dev = lock.packages[LOCK_KEY].dev;
+  else delete copy.dev;
+  lock.packages[LOCK_KEY] = copy;
+  // Lock v2 : la section dependencies héritée, lue par les npm anciens, suit aussi.
+  const legacy = lock.dependencies?.[PACKAGE];
+  if (legacy) lock.dependencies[PACKAGE] = { ...legacy, version, resolved: entry.resolved, integrity: entry.integrity };
   return { from, version, files: { 'package.json': serialize(pkg, branchPackage), 'package-lock.json': serialize(lock, branchLock) } };
 }
 
@@ -59,6 +70,12 @@ const show = (ref, file, cwd) => {
 export function alignPin(ref, cwd) {
   const paths = PIN_FILES.map((file) => path.join(cwd, file));
   if (!paths.every((p) => existsSync(p))) return null;
+  // Deux fichiers suivis par git (un lock ignoré ferait échouer git add), sans modification non commitée.
+  try {
+    git(['ls-files', '--error-unmatch', '--', ...PIN_FILES], cwd);
+  } catch {
+    return null;
+  }
   if (git(['status', '--porcelain', '--', ...PIN_FILES], cwd) !== '') return null;
   const plan = planPin({
     refPackage: show(ref, 'package.json', cwd),
@@ -71,3 +88,6 @@ export function alignPin(ref, cwd) {
   git(['add', '--', ...PIN_FILES], cwd);
   return { from: plan.from, version: plan.version };
 }
+
+// Défait un alignement que le commit n'a pas pu enregistrer : les deux fichiers reviennent à HEAD, rien ne reste indexé.
+export const undoPin = (cwd) => git(['restore', '--staged', '--worktree', '--source=HEAD', '--', ...PIN_FILES], cwd);

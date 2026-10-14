@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { HOME } from './config.mjs';
 import { git } from './git.mjs';
-import { alignPin, PIN_FILES } from './pin.mjs';
+import { alignPin, PIN_FILES, undoPin } from './pin.mjs';
 
 const PACKAGE = '@othila-academy/lab';
 // Les définitions, sans l'état local de l'apprenant, même s'il a été suivi par erreur.
@@ -67,7 +67,13 @@ export function updateDefinitions({ cwd, f, io }) {
   // Un commit limité à .othila-lab/ (et à l'épinglage) : ce que l'apprenant a indexé ailleurs reste indexé, hors du commit.
   if (changed || pinned) {
     const message = `labs à jour (${branch}@${sha})${pinned ? `, lab-cli ${pinned.version}` : ''}`;
-    git(['commit', '--quiet', '--no-verify', '-m', message, '--', ...DEFINITIONS, ...(pinned ? PIN_FILES : [])], cwd);
+    try {
+      git(['commit', '--quiet', '--no-verify', '-m', message, '--', ...DEFINITIONS, ...(pinned ? PIN_FILES : [])], cwd);
+    } catch (error) {
+      // Tout ou rien : un épinglage non commité fuirait dans le prochain commit de l'apprenant.
+      if (pinned) undoPin(cwd);
+      throw error;
+    }
   }
 
   const versions = packageVersions(ref, cwd);

@@ -143,14 +143,20 @@ function readRaw(root) {
 
 const requiredVersion = (raw) => (raw && typeof raw.lab === 'string' && VERSION.test(raw.lab) ? raw.lab : null);
 
-// Pour lab update : le manifeste validé ; ou, s'il a une forme que cette version refuse alors qu'il exige une version
-// plus récente, seulement la racine et la référence, qui suffisent à récupérer les labs.
+// Pour lab update : le manifeste validé ; ou, s'il a une forme que cette version refuse (version plus récente exigée,
+// identifiant devenu réservé…), seulement la racine et la référence, qui suffisent à récupérer les labs corrigés.
 export function formationForUpdate(root = projectRoot()) {
   try {
     return formation(root, { checkVersion: false });
   } catch (error) {
-    if (!versionProblemAt(root)) throw error;
-    const reference = readRaw(root)?.reference;
+    let raw;
+    try {
+      raw = readRaw(root);
+    } catch {
+      throw error;
+    }
+    if (!raw || typeof raw !== 'object') throw error;
+    const reference = raw.reference;
     const field = (key) => (reference && isText(reference[key]) ? reference[key] : REFERENCE_DEFAULTS[key]);
     return { root, reference: { remote: field('remote'), branch: field('branch') } };
   }

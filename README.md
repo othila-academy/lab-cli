@@ -71,7 +71,7 @@ Dans `package.json`, un raccourci : `"lab": "lab"`. L'apprenant lance alors `npm
 
 **Passer à 0.10** : lab-cli exige Node 22 ou plus (le client WebSocket natif de Node sert aux checks de subscription). Un cours qui utilise `subscribe` déclare `"lab": "0.10.0"`.
 
-**Passer à 0.11** : le tutoriel `prise-en-main` apparaît en séance 0 de tout cours ; un lab du cours ne peut plus porter cet identifiant. Monter la devDependency et `"lab": "0.11.0"` sur main, puis republier le catalogue (`lab catalog --publish`) pour que le tutoriel apparaisse sur l'écran du formateur. Les apprenants dont la branche part d'un état plus ancien passent à 0.11 au prochain `lab update` ou `lab catchup`.
+**Passer à 0.11** : le tutoriel `prise-en-main` apparaît en séance 0 de tout cours ; un lab du cours ne peut plus porter cet identifiant. Monter la devDependency et `"lab": "0.11.0"` sur main, puis republier le catalogue (`lab catalog --publish`) pour que le tutoriel apparaisse sur l'écran du formateur. Un apprenant encore en 0.10 y passe une fois par la commande `npm install --save-dev --save-exact @othila-academy/lab@0.11.0` que lui affiche `lab update` ; ensuite, `lab init`, `lab update` et `lab catchup` alignent eux-mêmes l'épinglage de sa branche.
 
 **0.10.1**, sans changement pour un cours : un serveur qui répond par une erreur n'est plus dit « injoignable » (`server-error`, code 1) ; Ctrl+C arrête Vitest et ses processus de travail ; la config de test du client ne s'invite plus dans lab check ; `componentTest` refuse `?` et `#` dans `file`.
 

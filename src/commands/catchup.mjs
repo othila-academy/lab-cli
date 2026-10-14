@@ -1,3 +1,4 @@
+import { isBuiltin } from '../builtin.mjs';
 import { chainOf } from '../chain.mjs';
 import { formation } from '../config.mjs';
 import { branchExists, checkoutNewBranch, currentBranch, git, isClean, tagExists } from '../git.mjs';
@@ -20,6 +21,7 @@ export async function run({ positionals: [labId], io }) {
   if (!labId) throw new Error(USAGE);
   const f = formation();
   const chain = chainOf(f);
+  if (isBuiltin(labId)) throw new Error(`${labId} est le tutoriel fourni par lab-cli : il n'a pas de départ, npx lab start ${labId} suffit`);
   const step = chain.find((s) => s.lab === labId);
   if (!step) {
     throw new Error(`lab inconnu : ${labId} (disponibles : ${chain.map((s) => s.lab).join(', ') || 'aucun'}) ; npx lab update pour récupérer les nouveaux labs`);

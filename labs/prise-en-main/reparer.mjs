@@ -26,7 +26,7 @@ export const checks = [
     id: 'prenom',
     label: 'prenom est renseigné',
     run: async () => {
-      const { prenom } = readCarnet();
+      const { prenom } = readCarnet("le carnet ne se lit pas encore : corrige d'abord l'erreur de lecture signalée au-dessus");
       assert(typeof prenom === 'string', 'prenom doit être un texte entre guillemets, par exemple "Ada"');
       assert(prenom.trim() !== '', 'prenom est vide : écris ton prénom entre les guillemets');
     }

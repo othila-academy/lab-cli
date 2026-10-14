@@ -35,7 +35,8 @@ export async function run({ positionals: [name = DEFAULT_DIR], io, initRepo = gi
   io.out(`${name} créé : le tutoriel de la commande lab, hors de tout cours`);
   io.out('');
   io.out('Ensuite :');
-  io.out(`  cd ${name}`);
+  // Un nom avec une espace ou un caractère spécial doit être cité pour que la commande marche telle quelle.
+  io.out(`  cd ${/^[\w./-]+$/.test(String(name)) ? name : JSON.stringify(String(name))}`);
   io.out('  npm install');
   io.out(`  npx lab start ${BUILTIN_IDS[0]}`);
   return 0;

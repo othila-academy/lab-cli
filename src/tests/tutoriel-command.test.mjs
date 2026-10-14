@@ -98,3 +98,9 @@ test('dans le dépôt d’un cours : refus, rien de créé, le tutoriel s’y jo
   assert.match(io.errors.join('\n'), /tu es dans le dépôt d'un cours : npx lab start prise-en-main y joue le tutoriel, sans dossier à part/);
   assert.ok(!existsSync(path.join(dir, 'packages', 'lab-tutoriel')));
 });
+
+test('un nom avec une espace : la commande cd affichée est entre guillemets', async () => {
+  const io = captureIo();
+  assert.equal(await main(['tutoriel', 'mon dossier'], io), 0);
+  assert.match(io.lines.join('\n'), /cd "mon dossier"/);
+});

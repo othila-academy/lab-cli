@@ -58,7 +58,7 @@ test('carnet de départ : virgule de trop, avec la ligne ; prénom et suite renv
   const reparer = messages(await run('reparer'));
   assert.match(reparer.lisible, /carnet\.json ne se lit pas \(ligne 5, colonne 1\)/);
   assert.match(reparer.lisible, /une virgule de trop avant \} ou \] \?/);
-  assert.match(reparer.prenom, /répare d'abord le carnet/);
+  assert.match(reparer.prenom, /le carnet ne se lit pas encore : corrige d'abord l'erreur de lecture signalée au-dessus/);
   assert.match(messages(await run('predire')).liste, /répare d'abord le carnet/);
   assert.match(messages(await run('indice')).date, /répare d'abord le carnet/);
 });
@@ -131,4 +131,9 @@ test('machine sous Windows : une seule chaîne de commande, sans tableau d’arg
   assert.ok(!('shell' in calls[0][3]), 'pas de shell hors Windows');
   const failing = { execFileSync: () => { throw new Error('absent'); }, execSync: () => { throw new Error('absent'); } };
   assert.equal(answers('npm', 'win32', failing), false);
+});
+
+test('carnet de départ enregistré sous Windows (BOM, CRLF) : la même ligne et la même colonne', async () => {
+  writeCarnet(`\uFEFF${TEMPLATE.replace(/\n/g, '\r\n')}`);
+  assert.match(messages(await run('reparer')).lisible, /\(ligne 5, colonne 1\)/);
 });
