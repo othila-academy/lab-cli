@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process';
+import { execFileSync, execSync } from 'node:child_process';
 import { assert } from '../../src/index.mjs';
 import { MIN_NODE_MAJOR } from '../../src/env.mjs';
 
@@ -7,10 +7,13 @@ export const points = 10;
 export const instructions = `Lance npx lab check prise-en-main machine : il vérifie que Node, npm et git répondent sur ta machine.
 Tout est vert ? Une étape se termine par une explication : npx lab submit prise-en-main machine, en deux phrases, à la question « Que vérifie un check, et que ferais-tu si une ligne était rouge ? »`;
 
-// npm est un script .cmd sous Windows : il faut un shell pour le lancer.
-const answers = (command) => {
+// npm est un script .cmd sous Windows : il faut un shell pour le lancer. Avec un shell, une seule chaîne de commande
+// (un tableau d'arguments avec shell: true déclenche DEP0190 sous Node 24) ; la commande est fixe, rien à échapper.
+const STDIO = ['ignore', 'pipe', 'ignore'];
+export const answers = (command, platform = process.platform, run = { execFileSync, execSync }) => {
   try {
-    execFileSync(command, ['--version'], { stdio: ['ignore', 'pipe', 'ignore'], shell: process.platform === 'win32' });
+    if (platform === 'win32') run.execSync(`${command} --version`, { stdio: STDIO });
+    else run.execFileSync(command, ['--version'], { stdio: STDIO });
     return true;
   } catch {
     return false;

@@ -81,7 +81,7 @@ Dans `package.json`, un raccourci : `"lab": "lab"`. L'apprenant lance alors `npm
 |---|---|---|
 | `lab join [--terminal]` | rejoindre une session : le navigateur s'ouvre sur un formulaire (code de session, e-mail, prénom) et le terminal attend, en rappelant `npx lab join --terminal` pour un poste sans navigateur ; `--terminal`, ou les options `--session`, `--email`, `--name`, gardent la saisie au terminal | 0, 1 session inconnue, refus ou délai dépassé, 2 endpoint injoignable, 3 champs manquants |
 | `lab env` | Node, registre npm, endpoint, git, proxy | 0 si les trois premiers passent, 1 sinon |
-| `lab tutoriel [dossier]` | hors de tout cours : crée un dossier (`lab-tutoriel` par défaut) où jouer le tutoriel `prise-en-main` ; ensuite `npm install` puis `npx lab start prise-en-main` | 0, 1 dossier existant |
+| `lab tutoriel [dossier]` | hors de tout cours : crée un dossier (`lab-tutoriel` par défaut) où jouer le tutoriel `prise-en-main` ; ensuite `npm install` puis `npx lab start prise-en-main` ; refusé dans le dépôt d'un cours, où `npx lab start prise-en-main` suffit | 0, 1 dossier existant ou dépôt de cours |
 | `lab init [--branch NOM]` | une fois, au début du cours : crée ta branche (`my-project` par défaut) depuis `base`, y apporte les labs de `main` (comme `lab update`) et les affiche ; refuse un arbre modifié, un `base` introuvable ou une branche existante | 0, 1 refus, 3 usage |
 | `lab start <lab>` | fiche du lab et gabarit du check apprenant s'il manque ; ne change pas de branche | 0, 1 ancien état local, 3 lab inconnu |
 | `lab check <lab> [étape]` | prédiction au premier passage, puis checks | 0, 1 échec, 2 serveur injoignable |
