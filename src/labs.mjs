@@ -112,7 +112,7 @@ export async function describeLab(id, f = formation()) {
   return { ...lab, steps };
 }
 
-// Le catalogue publié comme formation ou passé à create-session : les labs du manifeste, dans l'ordre.
+// Le catalogue publié comme formation ou passé à create-session : les labs intégrés en séance 0, puis ceux du manifeste, dans l'ordre.
 export async function catalog(f = formation()) {
   const labs = [];
   for (const { id } of catalogLabs(f)) {

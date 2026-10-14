@@ -26,12 +26,14 @@ export function errorPlace(text, error) {
   return { line: before.length, column: before[before.length - 1].length + 1 };
 }
 
-// Le carnet lu, pour les étapes qui suivent reparer ; illisible, il y renvoie.
-export function readCarnet() {
+const UNREADABLE = "le carnet ne se lit pas encore : répare d'abord le carnet (npx lab check prise-en-main reparer)";
+
+// Le carnet lu ; illisible, le message renvoie à l'étape reparer, ou celui donné par l'étape elle-même.
+export function readCarnet(unreadable = UNREADABLE) {
   const text = carnetText();
   try {
     return JSON.parse(text);
   } catch {
-    throw new Error("le carnet ne se lit pas encore : répare d'abord le carnet (npx lab check prise-en-main reparer)");
+    throw new Error(unreadable);
   }
 }

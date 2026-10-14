@@ -79,3 +79,35 @@ test('JSON illisible d’un côté ou de l’autre : rien', () => {
   j.refPackage = null;
   assert.equal(planPin(j), null);
 });
+
+test('fins de ligne CRLF conservées', () => {
+  const i = input('0.11.0', '0.10.1');
+  i.branchPackage = i.branchPackage.replace(/\n/g, '\r\n');
+  i.branchLock = i.branchLock.replace(/\n/g, '\r\n');
+  const plan = planPin(i);
+  for (const file of ['package.json', 'package-lock.json']) {
+    assert.ok(plan.files[file].includes('\r\n'), file);
+    assert.ok(!/[^\r]\n/.test(plan.files[file]), `${file} : aucun LF seul`);
+    assert.ok(plan.files[file].endsWith('\r\n'));
+  }
+});
+
+test('lock v2 : la section dependencies héritée suit aussi', () => {
+  const i = input('0.11.0', '0.10.1');
+  const l = lock('0.10.1');
+  l.lockfileVersion = 2;
+  l.dependencies = { [P]: { version: '0.10.1', resolved: entry('0.10.1').resolved, integrity: 'sha512-0.10.1', dev: true } };
+  i.branchLock = text(l);
+  const out = JSON.parse(planPin(i).files['package-lock.json']);
+  assert.deepEqual(out.dependencies[P], { version: '0.11.0', resolved: entry('0.11.0').resolved, integrity: 'sha512-0.11.0', dev: true });
+});
+
+test('l’entrée recopiée garde le marqueur dev de la branche', () => {
+  const i = input('0.11.0', '0.10.1', { field: 'dependencies' });
+  const l = lock('0.10.1', 'dependencies');
+  delete l.packages[`node_modules/${P}`].dev;
+  i.branchLock = text(l);
+  const out = JSON.parse(planPin(i).files['package-lock.json']);
+  assert.equal('dev' in out.packages[`node_modules/${P}`], false);
+  assert.equal(out.packages[`node_modules/${P}`].version, '0.11.0');
+});

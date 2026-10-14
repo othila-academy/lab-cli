@@ -1,6 +1,6 @@
 import { test, before, after, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { main } from '../cli.mjs';
 import { makeCourse, tinyLab } from '../test-helpers/course.mjs';
@@ -86,4 +86,19 @@ test('le parcours complet : échec lu, corrigé, prédiction, indice, points 9 /
   const progress = await cli('progress');
   assert.match(progress.out, /Séance 0 · Prise en main/);
   assert.match(progress.out, /indice\s+soumis\s+1\/1\s+9\/10/);
+});
+
+test('lab catchup prise-en-main : le tutoriel n’a pas de départ, et c’est dit', async () => {
+  const { code, err } = await cli('catchup', 'prise-en-main');
+  assert.equal(code, 3);
+  assert.match(err, /prise-en-main est le tutoriel fourni par lab-cli : il n'a pas de départ, npx lab start prise-en-main suffit/);
+});
+
+test('un client présent n’est ni lu ni modifié par le tutoriel', async () => {
+  mkdirSync(path.join(course.root, 'client'), { recursive: true });
+  writeFileSync(path.join(course.root, 'client', 'package.json'), '{"name":"client"}\n');
+  await cli('start', 'prise-en-main');
+  writeFileSync(carnet(), JSON.stringify({ prenom: 'Ada', objectifs: ['x'], arrivee: '2026-10-14' }));
+  for (const s of ['machine', 'reparer', 'predire', 'indice']) assert.equal((await cli('check', 'prise-en-main', s, '--answer', 'non', '--no-report')).code, 0);
+  assert.deepEqual(readdirSync(path.join(course.root, 'client')), ['package.json']);
 });
