@@ -54,3 +54,62 @@ test('Node trop ancien pour le Vitest du cours : le dire avant de lancer', async
   assert.deepEqual(run, { error: `vitest 0.0.0-faux demande Node >=99.0.0 (installé : ${process.versions.node}) : change de version de Node` });
   assert.equal(vitest.calls().length, 0);
 });
+
+const alive = (pid) => {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+};
+const until = async (condition, ms = 5000) => {
+  const end = Date.now() + ms;
+  while (!condition() && Date.now() < end) await new Promise((r) => setTimeout(r, 25));
+  return condition();
+};
+
+test('délai dépassé : les processus de travail de Vitest sont arrêtés avec lui', { skip: process.platform === 'win32' && 'groupe de processus Unix' }, async () => {
+  course = makeCourse({ labs: { a: tinyLab() }, manifest: { client: { dir: 'client' } } });
+  const clientDir = path.join(course.root, 'client');
+  mkdirSync(clientDir);
+  const vitest = installFakeVitest(clientDir, { sleepMs: 10000, worker: true });
+  await runVitest({ f: formation(course.root), labDir: path.join(course.home, 'labs', 'a'), files: ['t.test.js'], timeoutMs: 500 });
+  const { vitest: main, worker } = vitest.pids();
+  assert.ok(await until(() => !alive(main) && !alive(worker)), 'Vitest ou son processus de travail tourne encore');
+});
+
+test('Ctrl+C pendant les tests : Vitest et ses processus de travail arrêtés, dossier temporaire supprimé, code 130', { skip: process.platform === 'win32' && 'signaux Unix' }, async () => {
+  course = makeCourse({ labs: { a: tinyLab() }, manifest: { client: { dir: 'client' } } });
+  const clientDir = path.join(course.root, 'client');
+  mkdirSync(clientDir);
+  const vitest = installFakeVitest(clientDir, { sleepMs: 30000, worker: true });
+  const { spawn } = await import('node:child_process');
+  const { existsSync } = await import('node:fs');
+  const runner = new URL('../component/runner.mjs', import.meta.url).href;
+  const config = new URL('../config.mjs', import.meta.url).href;
+  const driver = spawn(
+    process.execPath,
+    ['--input-type=module', '-e', `
+      const { runVitest } = await import(${JSON.stringify(runner)});
+      const { formation } = await import(${JSON.stringify(config)});
+      await runVitest({ f: formation(${JSON.stringify(course.root)}), labDir: ${JSON.stringify(path.join(course.home, 'labs', 'a'))}, files: ['t.test.js'] });
+    `],
+    { stdio: 'ignore' }
+  );
+  const exited = new Promise((resolve) => driver.on('exit', (code, signal) => resolve({ code, signal })));
+  assert.ok(await until(() => vitest.pids() !== null), 'le faux Vitest n’a pas démarré');
+  const out = path.dirname(vitest.calls()[0].args.find((a) => a.startsWith('--outputFile=')).slice('--outputFile='.length));
+  driver.kill('SIGINT');
+  assert.deepEqual(await exited, { code: 130, signal: null });
+  const { vitest: main, worker } = vitest.pids();
+  assert.ok(await until(() => !alive(main) && !alive(worker)), 'Vitest ou son processus de travail tourne encore');
+  assert.equal(existsSync(out), false, 'le dossier temporaire du rapport reste');
+});
+
+test('stopTree sous Windows : taskkill /T /F sur le pid de Vitest, pour emporter ses processus de travail', async () => {
+  const { stopTree } = await import('../component/runner.mjs');
+  const calls = [];
+  stopTree({ pid: 4242, kill: () => calls.push('child.kill') }, { platform: 'win32', runSync: (...args) => calls.push(args) });
+  assert.deepEqual(calls, [['taskkill', ['/pid', '4242', '/T', '/F'], { stdio: 'ignore', windowsHide: true }]]);
+});
