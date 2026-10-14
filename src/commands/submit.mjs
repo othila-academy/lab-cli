@@ -1,7 +1,7 @@
 import { formation, loadSession, loadState, saveState } from '../config.mjs';
 import { applySubmit } from '../points.mjs';
 import { totals } from '../totals.mjs';
-import { loadLab, loadStep } from '../labs.mjs';
+import { listLabs, loadLab, loadStep } from '../labs.mjs';
 import { createReporter, describeFlush } from '../reporter.mjs';
 
 const USAGE = 'usage : lab submit <lab> <étape> [--text EXPLICATION]';
@@ -61,6 +61,11 @@ export async function run({ positionals: [labId, stepId], flags, io }) {
   const next = lab.steps[lab.steps.indexOf(step.id) + 1];
   if (next) {
     io.out(`Étape suivante : npx lab show ${lab.id} ${next}`);
+  } else if (lab.builtIn) {
+    const first = listLabs(formation())[0];
+    io.out('Prise en main terminée. Tes points : npx lab progress');
+    io.out(first ? `Premier lab de la formation : npx lab start ${first.id}` : 'Labs de la formation : npx lab catalog');
+    io.out('En salle, en fin de session : npx lab leave');
   } else {
     io.out(`Lab terminé. Commite ton travail : git add -A && git commit -m "lab ${lab.id}"`);
     io.out('Lab suivant : npx lab catalog, puis npx lab start <lab>');
