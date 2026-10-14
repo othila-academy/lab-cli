@@ -81,14 +81,17 @@ export async function run({ positionals: [labId, stepId], flags, io }) {
     });
 
     const down = outcome.failed.some((f) => f.id === 'server-unreachable');
-    // green suit chaque check envoyé, injoignable compris : le serveur le compte comme un échec,
+    // Serveur arrêté ou en erreur : une panne de tout le serveur, pas un résultat de l'étape. Elle ne rouvre
+    // pas l'étape et arrête la boucle ; seul le code de sortie les distingue (2 : arrêté, 1 : en erreur).
+    const fault = down || outcome.failed.some((f) => f.id === 'server-error');
+    // green suit chaque check envoyé, panne comprise : le serveur le compte comme un échec,
     // et une soumission qui suit n'acquiert rien, ni ici ni là-bas (points/regle.md).
-    const { green } = applyCheck({}, !down && outcome.failed.length === 0);
-    if (down && state.steps[key]) {
+    const { green } = applyCheck({}, !fault && outcome.failed.length === 0);
+    if (fault && state.steps[key]) {
       state.steps[key] = { ...state.steps[key], green };
       saveState(state);
     }
-    if (!down) {
+    if (!fault) {
       // Dernier résultat de l'étape, pour lab progress ; un nouveau check rouvre une étape soumise.
       state.steps[key] = {
         state: outcome.failed.length === 0 ? 'vert' : 'en-echec',
@@ -119,14 +122,14 @@ export async function run({ positionals: [labId, stepId], flags, io }) {
         const verdict = prediction.correct === null ? '' : prediction.correct ? ' · juste' : ` · attendu ${step.prediction.expected}`;
         io.out(`  prédiction : ${prediction.answer}${verdict}`);
       }
-      if (!down && outcome.failed.length === 0) {
+      if (!fault && outcome.failed.length === 0) {
         const acquired = state.steps[key]?.points !== undefined;
         io.out(acquired
           ? `  Étape validée. Explique en deux phrases : npx lab submit ${lab.id} ${step.id}`
           : `  Étape validée. Explique en deux phrases pour acquérir ${pointsFor(step.points, state.hints[key] ?? 0)} points : npx lab submit ${lab.id} ${step.id}`);
       }
     }
-    if (down) break;
+    if (fault) break;
   }
 
   const flush = await reporter.flush();

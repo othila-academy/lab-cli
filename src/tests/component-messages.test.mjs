@@ -104,3 +104,28 @@ test('Vitest ne démarre pas : la première erreur, sans pile ni couleurs ; à d
     'Vitest ne démarre pas : failed to load config from /lab-cli/src/component/vitest.config.mjs sortie inattendue fin'
   );
 });
+
+test('Error: levée ou matcher ajouté (jest-dom) : le premier paragraphe seulement, sans le HTML qui suit', () => {
+  assert.equal(
+    testFailure('Error: le titre affiché: expect(element).toHaveTextContent()\n\nExpected element to have text content:\n  Bonjour\nReceived:\n  Salut\n    at x'),
+    'le titre affiché: expect(element).toHaveTextContent()'
+  );
+  assert.equal(testFailure('Error: Le bouton manque\n\n<body>\n  <div />\n</body>\n    at x'), 'Le bouton manque');
+});
+
+test('délai d’une préparation (beforeEach, beforeAll) dépassé : dit en français', () => {
+  assert.equal(
+    testFailure('Error: Hook timed out in 100ms.\nIf this is a long-running hook, pass a timeout value as the last argument or configure it globally with "hookTimeout".\n    at beforeEach (file:///x.js:1:1)'),
+    'une préparation du test (beforeEach, beforeAll) a dépassé 0,1 s : attend-elle une réponse qui ne vient pas ?'
+  );
+});
+
+test('Vitest ne démarre pas : l’erreur après la bannière Startup Error, sa raison quand elle suit sur la ligne d’après, le code sans sortie', async () => {
+  const { startupFailure } = await import('../component/messages.mjs');
+  const config = '/lab-cli/src/component/vitest.config.mjs';
+  const syntax = `failed to load config from /cours/packages/client-react/vite.config.js\n\n⎯⎯⎯ Startup Error ⎯⎯⎯\nError: Build failed with 1 error:\n\n[PARSE_ERROR] Unexpected token\n -  in vite.config.js at 641..642\n\n  errors: [Getter/Setter]\n}\n`;
+  assert.equal(startupFailure(syntax, where, config, 1), 'la config Vite du client (packages/client-react/vite.config.js) ne se charge pas : Build failed with 1 error: Unexpected token');
+  const noisy = 'Error: avertissement ancien plugin\n⎯⎯⎯ Startup Error ⎯⎯⎯\nError: vraie cause\n    at x (y.js:1:1)\n';
+  assert.equal(startupFailure(noisy, where, config, 1), 'Vitest ne démarre pas : vraie cause');
+  assert.equal(startupFailure('', where, config, 1), 'Vitest ne démarre pas (code 1), sans message d\'erreur');
+});

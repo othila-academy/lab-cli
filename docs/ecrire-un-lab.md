@@ -306,7 +306,7 @@ test('liste-affiche', async () => {
 
 - **Toujours passer un message à `expect`** : `expect(x, 'message pour l'apprenant')`. L'apprenant ne lit que ce message ; sans lui, il lit l'anglais de Testing Library.
 - **Pas de `findBy*` ni de `getBy*` dans un test** : ils échouent avant `expect`, et l'apprenant lit l'anglais de Testing Library. Utiliser `queryBy*` dans `expect`, et `waitFor` pour attendre un rendu asynchrone.
-- **Un message sur une seule ligne** : seule la première ligne de l'échec est gardée.
+- **Un message court, d'un seul paragraphe** : il est rendu en entier, ses lignes jointes par un espace ; ce qui suit une ligne vide est coupé.
 - **Un échec choisi par le test** (plusieurs causes possibles) : `expect.fail('message')` ou `throw new Error('message')` ; l'apprenant lit le message seul.
 - **Vérifier les exports attendus explicitement.** Sous Vite, un export nommé absent vaut `undefined`, sans erreur au chargement.
 - **Annoncer dans la consigne le chemin et les exports que le test importe** (`src/EventsList.jsx`, export par défaut) : c'est un contrat avec l'apprenant. C'est la seule exception à la règle « observer un comportement, jamais le code » : le test rend le composant de l'apprenant et observe le DOM.
@@ -317,8 +317,10 @@ test('liste-affiche', async () => {
 
 | Vitest renvoie | L'apprenant lit |
 |---|---|
-| `AssertionError: <message>: expected …` | `<message>` |
-| `Error: <message>`, levée par le test | `<message>` |
+| `AssertionError: <message>: expected …` | `<message>`, même s'il contient lui-même « : expected » |
+| `Error: <message>`, levée par le test ou par un matcher ajouté (jest-dom) | le premier paragraphe de `<message>` |
+| `Test timed out in 5000ms` | « le test a dépassé 5 s : un composant attend-il une réponse qui ne vient pas ? » |
+| `Hook timed out in 10000ms` | « une préparation du test (beforeEach, beforeAll) a dépassé 10 s : … » |
 | un autre échec, sans message | sa première ligne, telle quelle |
 | `Failed to resolve import "@client/<chemin>"` | « packages/client-react/<chemin> introuvable : as-tu créé ce fichier ? » |
 | `Failed to resolve import "./Foo.jsx" from "src/App.jsx"` | « packages/client-react/src/Foo.jsx introuvable (importé par packages/client-react/src/App.jsx) » |

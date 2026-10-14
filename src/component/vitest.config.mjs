@@ -27,12 +27,13 @@ merged.test.include = files;
 merged.test.setupFiles = setup ? [setup] : [];
 merged.test.exclude = ['**/node_modules/**'];
 // Les réglages de test de l'étudiant qui changeraient ce qui tourne, ou planteraient avant les tests :
-// projets, couverture, préparation globale, mode navigateur, vérification des types.
+// projets, couverture, préparation globale, mode navigateur, vérification des types, arrêt au premier échec.
 delete merged.test.projects;
 delete merged.test.workspace;
 merged.test.globalSetup = [];
 merged.test.coverage = { enabled: false };
 merged.test.browser = { enabled: false };
 merged.test.typecheck = { enabled: false };
+merged.test.bail = 0;
 
 export default merged;

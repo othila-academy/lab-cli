@@ -87,3 +87,62 @@ test('waitForServer : le message d’une réponse GraphQL en erreur est repris t
     await server.close();
   }
 });
+
+test('waitForServer : la page d’erreur d’Express donne son message, entités décodées, pas son titre', async () => {
+  const page = '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<title>Error</title>\n</head>\n<body>\n<pre>Error: l&#39;option &quot;x&quot; manque &amp; plante<br> &nbsp; &nbsp;at middleware (/srv/app.js:3:9)</pre>\n</body>\n</html>\n';
+  const server = await answerWith(500, page);
+  try {
+    const error = await waitForServer(server.url, 3000).then(() => null, (e) => e);
+    assert.equal(error.excerpt, 'Error: l\'option "x" manque & plante');
+  } finally {
+    await server.close();
+  }
+});
+
+test('waitForServer : 502, 503 et 504 veulent dire « pas encore prêt » : attendre tout le délai, puis dire le statut', async () => {
+  let ready = false;
+  const booting = http.createServer((req, res) => {
+    req.resume();
+    req.on('end', () => {
+      res.writeHead(ready ? 200 : 503, { 'content-type': 'application/json' });
+      res.end(JSON.stringify(ready ? { data: { __typename: 'Query' } } : { errors: [{ message: 'démarrage' }] }));
+    });
+  });
+  await new Promise((resolve) => booting.listen(0, '127.0.0.1', resolve));
+  const url = `http://127.0.0.1:${booting.address().port}/graphql`;
+  try {
+    setTimeout(() => (ready = true), 1800);
+    await waitForServer(url, 5000);
+    ready = false;
+    const started = Date.now();
+    const error = await waitForServer(url, 1500).then(() => null, (e) => e);
+    assert.equal(error?.status, 503);
+    assert.ok(Date.now() - started >= 1400, 'abandon avant la fin du délai');
+  } finally {
+    await new Promise((resolve) => booting.close(resolve));
+  }
+});
+
+test('waitForServer : une réponse en erreur dont le corps ne finit jamais ne dépasse pas le délai', async () => {
+  const sockets = new Set();
+  const stuck = http.createServer((req, res) => {
+    req.resume();
+    req.on('end', () => {
+      res.writeHead(500, { 'content-type': 'text/plain' });
+      res.write('début');
+    });
+  });
+  stuck.on('connection', (socket) => sockets.add(socket));
+  await new Promise((resolve) => stuck.listen(0, '127.0.0.1', resolve));
+  const url = `http://127.0.0.1:${stuck.address().port}/graphql`;
+  const started = Date.now();
+  try {
+    const error = await waitForServer(url, 1500).then(() => null, (e) => e);
+    assert.ok(error, 'waitForServer aurait dû lever');
+    assert.equal(error.status, 500);
+    assert.ok(Date.now() - started < 3000, `trop long : ${Date.now() - started} ms`);
+  } finally {
+    for (const socket of sockets) socket.destroy();
+    await new Promise((resolve) => stuck.close(resolve));
+  }
+});

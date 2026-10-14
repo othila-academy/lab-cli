@@ -94,6 +94,24 @@ test('vrai Vitest : la config de test de l’étudiant (projects, coverage, glob
   await expectBonjour();
 });
 
+test('vrai Vitest : bail de l’étudiant neutralisé, chaque fichier du lab est joué', { skip: !supported && 'Node ≥ 22.12 requis par Vitest 5' }, async () => {
+  const bonjour = readFileSync(path.join(FIXTURE, '.othila-lab/labs/bonjour/tests/bonjour.test.jsx'), 'utf8');
+  fixtureWith({
+    'client/vite.config.js': 'export default { test: { bail: 1, fileParallelism: false } };\n',
+    '.othila-lab/labs/bonjour/tests/a.test.jsx': bonjour,
+    '.othila-lab/labs/bonjour/tests/b.test.jsx': bonjour,
+    '.othila-lab/labs/bonjour/s.mjs': `import { componentTest } from '@othila-academy/lab';
+
+export const checks = [
+  componentTest({ id: 'a', label: 'a', file: 'tests/a.test.jsx', test: 'au-revoir' }),
+  componentTest({ id: 'b', label: 'b', file: 'tests/b.test.jsx', test: 'affiche' })
+];
+`
+  });
+  const { passed, messages } = await checkBonjour();
+  assert.deepEqual({ passed, messages }, { passed: ['b'], messages: { a: 'Le composant ne dit pas au revoir' } });
+});
+
 test('vrai Vitest : une config Vite qui ne se charge pas est nommée, avec sa première erreur', { skip: !supported && 'Node ≥ 22.12 requis par Vitest 5' }, async () => {
   fixtureWith({ 'client/vite.config.js': "import nope from 'plugin-inexistant';\nexport default { plugins: [nope()] };\n" });
   const { passed, messages } = await checkBonjour();
