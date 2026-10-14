@@ -202,6 +202,9 @@ export const graphqlUrl = (flag) => flag ?? process.env.GRAPHQL_URL ?? setting('
 // L'état de l'apprenant sur cette machine, jamais commité : .othila-lab/local/, ou OTHILA_LAB_DIR.
 export const localDir = () => path.resolve(projectRoot(), process.env.OTHILA_LAB_DIR ?? path.join(HOME, 'local'));
 
+// Le bac à sable d'un lab intégré : ses fichiers de travail, dans l'état local, jamais commités.
+export const sandboxDir = (labId) => path.join(localDir(), labId);
+
 const file = (name) => path.join(localDir(), name);
 
 function readJson(name, fallback) {
