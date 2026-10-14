@@ -127,7 +127,8 @@ test('lab replay --lab : lab inconnu en code 3', async () => {
   assert.match(err, /lab inconnu : zz/);
 });
 
-test('lab replay : une formation sans serveur se rejoue, aucun serveur démarré', async () => {
+// Un cours sans serveur : le check lit answer.txt, et échoue si un serveur lui est passé.
+function serverlessCourse() {
   course = makeCourse({
     labs: {
       a: {
@@ -156,8 +157,24 @@ export const checks = [{ id: 'fichier', label: 'answer.txt vaut 42', run: async 
   commitAll(course.root, 'solution a');
   git('tag', 'solution/a');
   process.chdir(course.root);
+}
+
+test('lab replay : une formation sans serveur se rejoue, aucun serveur démarré', async () => {
+  serverlessCourse();
   const { code, out } = await replay();
   assert.equal(code, 0, out);
   assert.match(out, /\| a \| start \| s \| 0 \| 1 \| aucune \|/);
   assert.match(out, /\| a \| solution \| s \| 1 \| 0 \| aucune \|/);
+});
+
+test('lab replay : OTHILA_LAB_SERVER_SCRIPT posé chez le formateur ne donne pas de serveur à une formation qui n’en a pas', async () => {
+  serverlessCourse();
+  process.env.OTHILA_LAB_SERVER_SCRIPT = 'ailleurs/server.js';
+  try {
+    const { code, out } = await replay();
+    assert.equal(code, 0, out);
+    assert.match(out, /\| a \| solution \| s \| 1 \| 0 \| aucune \|/);
+  } finally {
+    delete process.env.OTHILA_LAB_SERVER_SCRIPT;
+  }
 });
