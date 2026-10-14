@@ -68,3 +68,28 @@ test('paquet introuvable depuis un test du lab : le client doit être un workspa
     "le paquet @testing-library/react est introuvable depuis .othila-lab/labs/client-apollo/tests/liste.test.jsx : installe-le dans le client, qui doit être un workspace du cours (ou à la racine du dépôt)"
   );
 });
+
+// Messages réels de Vitest 5 (rapport JSON), pile d'appels raccourcie.
+test('message d’auteur sur plusieurs lignes, ou qui contient lui-même « : expected » : rendu en entier', () => {
+  assert.equal(
+    testFailure('AssertionError: Première ligne.\nDeuxième ligne : expected à la fin ?: expected 1 to be 2 // Object.is equality\n    at /x/sample.test.mjs:2:7'),
+    'Première ligne. Deuxième ligne : expected à la fin ?'
+  );
+  assert.equal(
+    testFailure('AssertionError: Le titre : expected « A » ici: expected 1 to be 2 // Object.is equality\n    at /x/sample.test.mjs:3:7'),
+    'Le titre : expected « A » ici'
+  );
+  // La valeur reçue peut elle aussi contenir « : expected » : le message de l'auteur s'arrête avant.
+  assert.equal(
+    testFailure("AssertionError: Le message: expected 'a: expected b' to be 'c' // Object.is equality\n    at /x/sample.test.mjs:5:7"),
+    'Le message'
+  );
+  assert.equal(testFailure('Error: Le titre manque,\nrelis la consigne\n    at x'), 'Le titre manque, relis la consigne');
+});
+
+test('délai de Vitest dépassé : dit en français, en secondes', () => {
+  const timedOut = (ms) =>
+    `Error: Test timed out in ${ms}ms.\nIf this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".\n    at task (file:///x/vitest/dist/runner.js:1:1)`;
+  assert.equal(testFailure(timedOut(5000)), 'le test a dépassé 5 s : un composant attend-il une réponse qui ne vient pas ?');
+  assert.equal(testFailure(timedOut(300)), 'le test a dépassé 0,3 s : un composant attend-il une réponse qui ne vient pas ?');
+});

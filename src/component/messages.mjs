@@ -19,16 +19,40 @@ const outsideClient = (file, { clientDir }) => {
   return relative.startsWith('..') || path.isAbsolute(relative);
 };
 
+// Le texte d'une erreur avant sa pile d'appels, ses lignes jointes par un espace.
+const beforeStack = (text) => lines(String(text ?? '').replace(ANSI, '').split(/\n\s+at /)[0]).join(' ');
+
+// La suite d'une assertion de Vitest, `expected <valeur> to …` ou `not to …` : une valeur entre guillemets,
+// crochets ou accolades, ou un mot. Elle sépare le message de l'auteur de l'assertion, même quand
+// le message ou la valeur contiennent eux-mêmes « : expected ».
+const ASSERTION = /^expected (?:'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|\[[\s\S]*?\]|\{[\s\S]*?\}|\S+) (?:not )?to /;
+function authorMessage(text) {
+  for (let at = text.indexOf(': expected '); at !== -1; at = text.indexOf(': expected ', at + 1)) {
+    if (ASSERTION.test(text.slice(at + 2))) return text.slice(0, at);
+  }
+  const first = text.indexOf(': expected ');
+  return first === -1 ? null : text.slice(0, first);
+}
+
+const seconds = (ms) => String(ms / 1000).replace('.', ',');
+
 // Un test en échec : `AssertionError: <message>: expected …`, `Error: <message>` et `AssertionError: <message>`
-// (expect.fail) rendent le message de l'auteur ; une assertion sans message (`expected …`) garde sa ligne.
+// (expect.fail) rendent le message de l'auteur, en entier ; une assertion sans message (`expected …`) garde sa ligne.
+// Le délai de Vitest dépassé est dit en français.
 export function testFailure(failureMessage) {
   const line = firstLine(failureMessage);
-  const assertion = line.match(/^AssertionError: (.+?): expected /);
-  if (assertion) return assertion[1];
-  const error = line.match(/^Error: (.+)$/);
+  const timedOut = line.match(/^Error: Test timed out in (\d+)ms/);
+  if (timedOut) return `le test a dépassé ${seconds(Number(timedOut[1]))} s : un composant attend-il une réponse qui ne vient pas ?`;
+  const text = beforeStack(failureMessage);
+  if (/^AssertionError: /.test(text)) {
+    const body = text.slice('AssertionError: '.length);
+    const message = /^expected /.test(body) ? null : authorMessage(body);
+    if (message) return message;
+    if (!/^expected /.test(body) && body !== 'expect.fail()') return body;
+    return line;
+  }
+  const error = text.match(/^Error: (.+)$/);
   if (error) return error[1];
-  const failed = line.match(/^AssertionError: (.+)$/);
-  if (failed && !/^expected /.test(failed[1]) && failed[1] !== 'expect.fail()') return failed[1];
   return line;
 }
 
