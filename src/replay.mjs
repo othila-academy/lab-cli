@@ -51,6 +51,8 @@ function overlay(repo, dir) {
 function runCheckJson({ dir, labId, url, stateDir }) {
   const env = { ...process.env, OTHILA_LAB_DIR: stateDir };
   delete env.OTHILA_LAB_ROOT; // la commande trouve la racine du worktree elle-même
+  // Le serveur vient du formation.json du worktree (lancé ci-dessus) : un réglage du formateur ne s'en mêle pas.
+  delete env.OTHILA_LAB_SERVER_SCRIPT;
   return new Promise((resolve, reject) => {
     const args = [LAB_BINARY, 'check', labId, '--json', '--no-report', ...(url ? ['--url', url] : [])];
     const child = spawn(process.execPath, args, {
