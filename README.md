@@ -59,6 +59,8 @@ main : base ── solution/hello ── solution/schema ── solution/n1 ─�
 
 L'apprenant crée sa branche une fois (`lab init`), reçoit les nouveaux labs avec `lab update`, et ne change de branche que pour rattraper son retard (`lab catchup <lab>`). L'auteur vérifie la chaîne et chaque lab avec `lab replay`. Le pas à pas : [guide d'écriture des labs](docs/ecrire-un-lab.md).
 
+**La version de lab-cli suit main.** Chaque état de la chaîne porte son `package.json`, donc sa version de lab-cli. `lab init`, `lab catchup` et `lab update` alignent l'épinglage de la branche de l'apprenant (`package.json` et `package-lock.json`) sur celui de main, dans le commit des labs ; jamais vers une version plus ancienne, et jamais sur des fichiers modifiés non commités. Monter la version de lab-cli d'un cours se fait donc par un commit en tête de main, sans réécrire la chaîne.
+
 Dans `package.json`, un raccourci : `"lab": "lab"`. L'apprenant lance alors `npm run lab -- check n1 observe`, ou `npx lab check n1 observe`. `lab join` vérifie que `.othila-lab/.gitignore` contient `local/` ; il ne touche pas au `.gitignore` du projet.
 
 **Depuis l'ancien format** (`othila-lab.config.json` à la racine) : déplacer `labs/` dans `.othila-lab/labs/`, écrire `formation.json` (l'ancien champ `formation` donne `id` et `title`, les `section` des labs donnent les séances), retirer `section` des `index.mjs`, supprimer `othila-lab.config.json`, retirer `.othila-lab/` du `.gitignore` du projet, puis construire la chaîne (voir « Depuis la branche labs »). Sur chaque machine où `lab join` avait servi, l'ancien état local reste à la racine de `.othila-lab/` et n'est plus ignoré : déplacer `state.json` dans `.othila-lab/local/` pour garder la progression, supprimer `config.json`, `outbox.jsonl` et `rejected.jsonl`, puis relancer `lab join`. Tant qu'il reste, `lab start` refuse et le dit.
@@ -69,6 +71,8 @@ Dans `package.json`, un raccourci : `"lab": "lab"`. L'apprenant lance alors `npm
 
 **Passer à 0.10** : lab-cli exige Node 22 ou plus (le client WebSocket natif de Node sert aux checks de subscription). Un cours qui utilise `subscribe` déclare `"lab": "0.10.0"`.
 
+**Passer à 0.11** : le tutoriel `prise-en-main` apparaît en séance 0 de tout cours ; un lab du cours ne peut plus porter cet identifiant. Monter la devDependency et `"lab": "0.11.0"` sur main, puis republier le catalogue (`lab catalog --publish`) pour que le tutoriel apparaisse sur l'écran du formateur. Les apprenants dont la branche part d'un état plus ancien passent à 0.11 au prochain `lab update` ou `lab catchup`.
+
 **0.10.1**, sans changement pour un cours : un serveur qui répond par une erreur n'est plus dit « injoignable » (`server-error`, code 1) ; Ctrl+C arrête Vitest et ses processus de travail ; la config de test du client ne s'invite plus dans lab check ; `componentTest` refuse `?` et `#` dans `file`.
 
 ## Commandes
@@ -77,6 +81,7 @@ Dans `package.json`, un raccourci : `"lab": "lab"`. L'apprenant lance alors `npm
 |---|---|---|
 | `lab join [--terminal]` | rejoindre une session : le navigateur s'ouvre sur un formulaire (code de session, e-mail, prénom) et le terminal attend, en rappelant `npx lab join --terminal` pour un poste sans navigateur ; `--terminal`, ou les options `--session`, `--email`, `--name`, gardent la saisie au terminal | 0, 1 session inconnue, refus ou délai dépassé, 2 endpoint injoignable, 3 champs manquants |
 | `lab env` | Node, registre npm, endpoint, git, proxy | 0 si les trois premiers passent, 1 sinon |
+| `lab tutoriel [dossier]` | hors de tout cours : crée un dossier (`lab-tutoriel` par défaut) où jouer le tutoriel `prise-en-main` ; ensuite `npm install` puis `npx lab start prise-en-main` | 0, 1 dossier existant |
 | `lab init [--branch NOM]` | une fois, au début du cours : crée ta branche (`my-project` par défaut) depuis `base`, y apporte les labs de `main` (comme `lab update`) et les affiche ; refuse un arbre modifié, un `base` introuvable ou une branche existante | 0, 1 refus, 3 usage |
 | `lab start <lab>` | fiche du lab et gabarit du check apprenant s'il manque ; ne change pas de branche | 0, 1 ancien état local, 3 lab inconnu |
 | `lab check <lab> [étape]` | prédiction au premier passage, puis checks | 0, 1 échec, 2 serveur injoignable |
@@ -92,9 +97,15 @@ Dans `package.json`, un raccourci : `"lab": "lab"`. L'apprenant lance alors `npm
 
 Options utiles : `--url` (serveur de l'apprenant), `--answer` (prédiction sans question), `--text` (explication), `--json` (sortie machine : aucune question posée, la prédiction n'est prise que via `--answer`), `--no-report`.
 
+## Prendre la commande en main
+
+Avant le premier lab, `npx lab start prise-en-main` : un tutoriel de quinze minutes, fourni par lab-cli et présent dans tout cours, en « Séance 0 · Prise en main ». On y répare un petit fichier, `carnet.json`, créé dans `.othila-lab/local/prise-en-main/` (jamais commité) : lancer un check, lire un échec, soumettre une explication, prédire avant de vérifier, demander un indice et voir son coût. Il ne demande aucun serveur. En salle, après `npx lab join`, le formateur voit la progression sur son écran (`lab catalog --publish` l'inclut dans le catalogue).
+
+Hors de tout cours, avant la formation : `npx @othila-academy/lab tutoriel` crée un dossier `lab-tutoriel`, puis `cd lab-tutoriel && npm install && npx lab start prise-en-main`.
+
 ## Le parcours d'une étape
 
-Une fois au début du cours : `git clone`, `npm install`, `npx lab join`, `npx lab init`. Puis, pour chaque lab : `npx lab start <lab>` pour la fiche, et pour chaque étape `lab check` jusqu'au vert, puis `lab submit` : c'est la soumission qui termine l'étape. Après un check tout vert, la commande affiche la soumission à faire ; après une soumission, l'étape suivante, ou à la fin du lab le commit à faire et le catalogue.
+Une fois au début du cours : `git clone`, `npm install`, `npx lab join`, `npx lab init`, puis le tutoriel (`npx lab start prise-en-main`). Ensuite, pour chaque lab : `npx lab start <lab>` pour la fiche, et pour chaque étape `lab check` jusqu'au vert, puis `lab submit` : c'est la soumission qui termine l'étape. Après un check tout vert, la commande affiche la soumission à faire ; après une soumission, l'étape suivante, ou à la fin du lab le commit à faire et le catalogue.
 
 Les labs s'enchaînent sur ton code : le lab suivant part de là où tu as fini le précédent. Quand le formateur publie de nouveaux labs, `npx lab update`. Si tu es trop loin du départ d'un lab (absence, projet bloqué), `npx lab catchup <lab>` te donne une branche sur son départ de référence ; ta branche reste là.
 
