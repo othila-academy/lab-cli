@@ -83,3 +83,19 @@ export function fileFailure(message, where) {
   }
   return testFailure(head);
 }
+
+// Vitest n'a pas démarré (pas de rapport) : la config Vite du client en cause et la première erreur lisible,
+// plutôt que la fin brute de sa sortie d'erreur. config : la config de lab-cli, que Vitest cite aussi.
+export function startupFailure(stderr, where, config) {
+  const text = lines(stderr);
+  const failedConfig = text
+    .map((l) => l.match(/^failed to load config from (.+)$/)?.[1])
+    .find((file) => file && path.resolve(file) !== path.resolve(config));
+  const error = text
+    .map((l) => l.match(/^\w*Error(?: \[[A-Z_]+\])?: (.+)$/)?.[1])
+    .find(Boolean)
+    ?.replace(/ imported from .+$/, '');
+  if (failedConfig) return `la config Vite du client (${shown(failedConfig, where)}) ne se charge pas${error ? ` : ${error}` : ''}`;
+  if (error) return `Vitest ne démarre pas : ${error}`;
+  return `Vitest ne démarre pas : ${text.filter((l) => !/^at /.test(l)).slice(-3).join(' ').slice(-300)}`;
+}

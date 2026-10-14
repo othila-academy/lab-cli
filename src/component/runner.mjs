@@ -6,6 +6,7 @@ import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { startupFailure } from './messages.mjs';
 import { outcomeOf, realPath } from './results.mjs';
 
 export const COMPONENT_TIMEOUT_MS = 60000;
@@ -126,12 +127,12 @@ export async function runVitest({ f, labDir, files, graphqlUrl = null, timeoutMs
   else delete env.LAB_GRAPHQL_URL;
   try {
     const args = [bin, 'run', '--config', CONFIG, '--reporter=json', `--outputFile=${outputFile}`];
-    const { code, stderr, timedOut } = await spawnWithTimeout(args, { cwd: clientDir, env }, timeoutMs);
+    const { stderr, timedOut } = await spawnWithTimeout(args, { cwd: clientDir, env }, timeoutMs);
     if (timedOut) return { error: `les tests ont dépassé ${timeoutMs / 1000} s : un composant attend-il une réponse qui ne vient pas ?` };
     try {
       return { report: JSON.parse(readFileSync(outputFile, 'utf8')) };
     } catch {
-      return { error: `Vitest n'a pas produit de rapport (code ${code}) : ${stderr.trim().slice(-500)}` };
+      return { error: startupFailure(stderr, { root: realPath(f.root), clientDir }, CONFIG) };
     }
   } finally {
     rmSync(out, { recursive: true, force: true });

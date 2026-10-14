@@ -134,7 +134,7 @@ test('Vitest sans rapport : la fin de sa sortie d’erreur', async () => {
   const { clientDir } = setup();
   installFakeVitest(clientDir, { noReport: true });
   const { messages } = await check();
-  assert.match(messages.affiche, /^Vitest n'a pas produit de rapport \(code 1\) : plantage simulé$/);
+  assert.equal(messages.affiche, 'Vitest ne démarre pas : plantage simulé');
 });
 
 test('messages avec chemins absolus réels (racine derrière un lien, comme /var sous macOS) : chemins depuis la racine du dépôt', async () => {
@@ -149,4 +149,10 @@ test('messages avec chemins absolus réels (racine derrière un lien, comme /var
   const { messages } = await check();
   assert.equal(messages.affiche, 'client/src/A.jsx ne compile pas (ligne 3) : Expected ";" but found "x"');
   assert.equal(messages.connexion, "le paquet react n'est pas installé pour le client (client)");
+});
+
+test('componentTest : ? et # refusés dans file, Vite les lit comme une requête ou une ancre d’URL', () => {
+  assert.throws(() => componentTest({ id: 'q', label: 'Q', file: 'tests/a?b.test.jsx' }), /componentTest q : file ne peut pas contenir \? ni # \(Vite les lit comme une requête ou une ancre d'URL\) : tests\/a\?b\.test\.jsx/);
+  assert.throws(() => componentTest({ id: 'h', label: 'H', file: 'tests/a#b.test.jsx' }), /componentTest h : file ne peut pas contenir \? ni #/);
+  assert.doesNotThrow(() => componentTest({ id: 'c', label: 'C', file: 'tests/[nom] (bis).test.jsx' }));
 });
