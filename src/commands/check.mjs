@@ -36,8 +36,8 @@ export async function run({ positionals: [labId, stepId], flags, io }) {
   const stepIds = stepId ? [stepId] : lab.steps;
   const config = loadSession();
   const reporter = createReporter({ config, enabled: !flags['no-report'] });
-  // Sans serveur déclaré (formation front), rien n'est attendu et gql le dit.
-  const hasServer = serverScript() !== null;
+  // Sans serveur déclaré (formation front), ou pour un lab fourni par lab-cli, rien n'est attendu et gql le dit.
+  const hasServer = !lab.builtIn && serverScript() !== null;
   const url = hasServer ? graphqlUrl(flags.url) : null;
   const query = hasServer ? (q, options) => gql(url, q, options) : async () => { throw new Error(NO_SERVER); };
   const state = loadState();
@@ -70,7 +70,7 @@ export async function run({ positionals: [labId, stepId], flags, io }) {
       }
     }
     if (!outcome) {
-      const components = componentRunner({ f, lab, step, graphqlUrl: url });
+      const components = lab.builtIn ? null : componentRunner({ f, lab, step, graphqlUrl: url });
       outcome = await runChecks(step.checks, { url, gql: query, state: {}, lab, step, io, startServer, runChecks, components });
     }
 

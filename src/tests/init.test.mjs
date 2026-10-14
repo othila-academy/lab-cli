@@ -83,7 +83,7 @@ test('lab init : un cours sans lab le dit', async () => {
   const io = captureIo();
   assert.equal(await main(['init'], io), 0);
   assert.equal(git('branch', '--show-current'), 'my-project');
-  assert.match(io.lines.join('\n'), /aucun lab pour l'instant : npx lab update quand le formateur en publie/);
+  assert.match(io.lines.join('\n'), /Ensuite : npx lab start prise-en-main pour prendre en main la commande ; npx lab update quand le formateur publie des labs/);
 });
 
 test('lab init : base sans lab, labs publiés ensuite sur main ; init apporte les définitions de main', async () => {
@@ -108,7 +108,8 @@ test('lab init : base sans lab, labs publiés ensuite sur main ; init apporte le
     assert.match(learner('log', '-1', '--format=%s'), /^labs à jour \(main@/);
     const out = io.lines.join('\n');
     assert.match(out, /Premier lab/);
-    assert.match(out, /Ensuite : npx lab start a/);
+    assert.match(out, /Séance 0 · Prise en main/);
+    assert.match(out, /Ensuite : npx lab start prise-en-main pour prendre en main la commande, puis npx lab start a/);
     assert.equal(await main(['start', 'a'], captureIo()), 0);
   } finally {
     restoreEnv();

@@ -1,6 +1,6 @@
 import { copyFileSync, existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
-import { legacyLocalFiles } from '../config.mjs';
+import { legacyLocalFiles, sandboxDir } from '../config.mjs';
 import { describeLab, loadLab } from '../labs.mjs';
 import { formatSheet } from '../sheet.mjs';
 
@@ -22,6 +22,15 @@ export async function run({ positionals: [labId], io }) {
     mkdirSync(path.dirname(lab.mine.path), { recursive: true });
     copyFileSync(path.join(lab.dir, lab.mine.template), lab.mine.path);
     io.out(`${path.relative(process.cwd(), lab.mine.path)} créé depuis le gabarit : c'est là que tu écris ton check`);
+    io.out('');
+  }
+  // Lab intégré : ses fichiers de travail dans le bac à sable, jamais commités ni écrasés.
+  for (const name of lab.sandbox) {
+    const target = path.join(sandboxDir(lab.id), name);
+    if (existsSync(target)) continue;
+    mkdirSync(path.dirname(target), { recursive: true });
+    copyFileSync(path.join(lab.dir, name), target);
+    io.out(`${path.relative(process.cwd(), target)} créé : c'est ton fichier pour ce lab, ouvre-le dans ton éditeur`);
     io.out('');
   }
   for (const line of formatSheet(await describeLab(lab.id))) io.out(line);

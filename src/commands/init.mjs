@@ -1,7 +1,8 @@
 import { BASE_TAG } from '../chain.mjs';
 import { formation } from '../config.mjs';
 import { branchExists, checkoutNewBranch, isClean, tagExists } from '../git.mjs';
-import { describeLab, listLabs } from '../labs.mjs';
+import { BUILTIN_IDS } from '../builtin.mjs';
+import { catalogLabs, describeLab, listLabs } from '../labs.mjs';
 import { formatCatalog } from '../sheet.mjs';
 import { updateDefinitions } from '../update.mjs';
 
@@ -38,15 +39,14 @@ export async function run({ flags, io }) {
   }
   io.out('');
   const current = formation(f.root);
-  const labs = listLabs(current);
-  if (labs.length === 0) {
-    io.out("aucun lab pour l'instant : npx lab update quand le formateur en publie");
-    return 0;
-  }
   const described = [];
-  for (const { id } of labs) described.push(await describeLab(id, current));
+  for (const { id } of catalogLabs(current)) described.push(await describeLab(id, current));
   for (const line of formatCatalog(described)) io.out(line);
   io.out('');
-  io.out(`Ensuite : npx lab start ${labs[0].id}`);
+  // Le tutoriel d'abord, puis le premier lab de la formation s'il y en a un.
+  const first = listLabs(current)[0];
+  io.out(first
+    ? `Ensuite : npx lab start ${BUILTIN_IDS[0]} pour prendre en main la commande, puis npx lab start ${first.id}`
+    : `Ensuite : npx lab start ${BUILTIN_IDS[0]} pour prendre en main la commande ; npx lab update quand le formateur publie des labs`);
   return 0;
 }
