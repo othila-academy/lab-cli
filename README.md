@@ -69,6 +69,8 @@ Dans `package.json`, un raccourci : `"lab": "lab"`. L'apprenant lance alors `npm
 
 **Passer à 0.10** : lab-cli exige Node 22 ou plus (le client WebSocket natif de Node sert aux checks de subscription). Un cours qui utilise `subscribe` déclare `"lab": "0.10.0"`.
 
+**0.10.1**, sans changement pour un cours : un serveur qui répond par une erreur n'est plus dit « injoignable » (`server-error`, code 1) ; Ctrl+C arrête Vitest et ses processus de travail ; la config de test du client ne s'invite plus dans lab check ; `componentTest` refuse `?` et `#` dans `file`.
+
 ## Commandes
 
 | Commande | Rôle | Code de sortie |
