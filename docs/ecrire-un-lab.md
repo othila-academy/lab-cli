@@ -91,6 +91,8 @@ export const objectives = [
 
 L'identifiant du lab est le nom du dossier : minuscules, chiffres et tirets. Seuls `title` et `steps` sont obligatoires, mais la fiche affichée à l'apprenant par `lab start` et `lab show` vient des autres champs.
 
+**Labs intégrés.** lab-cli fournit lui-même des labs, présents dans tout cours en séance 0 et hors de la chaîne : aujourd'hui `prise-en-main`, le tutoriel de la commande. Leur identifiant est réservé : un lab du cours qui le porte est refusé, avec le conseil de le renommer.
+
 Tant que le lab n'est pas cité dans `formation.json`, c'est un brouillon. Pour l'ajouter **en fin de chaîne**, le citer en dernier dans `.othila-lab/formation.json`, dans la dernière séance ou une nouvelle :
 
 ```json
@@ -451,6 +453,7 @@ Le retirer de `formation.json` et supprimer son dossier `.othila-lab/labs/<id>/`
 | Symptôme | Cause et geste |
 |---|---|
 | `lab inconnu : x` | le lab n'est pas encore dans les définitions de l'apprenant : `npx lab update` ; ou il n'est pas encore publié |
+| `<lab> est un lab fourni par lab-cli` | l'identifiant est réservé à un lab intégré (aujourd'hui `prise-en-main`) : renommer le dossier `.othila-lab/labs/<lab>/` et sa mention dans `formation.json` |
 | `section a migré dans .othila-lab/formation.json` | retirer `section` de `index.mjs` et citer le lab dans une séance du manifeste |
 | `ancienne configuration othila-lab.config.json` | migrer le dépôt : [README](../README.md#configurer-un-dépôt-de-cours), section « Configurer un dépôt de cours » |
 | `tag base introuvable` (`lab init`) | les tags ne sont pas récupérés : `git fetch origin --tags` ; côté auteur, le starter n'est pas encore tagué |
