@@ -1,5 +1,5 @@
 import { endpointUrl, formation } from '../config.mjs';
-import { catalog, describeLab, listDrafts, listLabs } from '../labs.mjs';
+import { catalog, catalogLabs, describeLab, listDrafts } from '../labs.mjs';
 import { publishFormation } from '../publish.mjs';
 import { formatCatalog } from '../sheet.mjs';
 
@@ -13,7 +13,7 @@ export async function run({ flags, io }) {
   }
   const f = formation();
   const labs = [];
-  for (const { id } of listLabs(f)) labs.push(await describeLab(id, f));
+  for (const { id } of catalogLabs(f)) labs.push(await describeLab(id, f));
   // Un brouillon est en cours d'écriture : cassé, il est signalé, il ne fait pas tomber le tableau.
   const drafts = [];
   for (const id of listDrafts(f)) {

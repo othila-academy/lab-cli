@@ -88,11 +88,11 @@ test('lab catalog : tableau dans un terminal, JSON sinon ou avec --json', async 
     const json = captureIo();
     Object.assign(json, { isTTY: true });
     assert.equal(await main(['catalog', '--json'], json), 0);
-    assert.equal(JSON.parse(json.lines.join('\n')).labs[0].id, 'demo');
+    assert.deepEqual(JSON.parse(json.lines.join('\n')).labs.map((l) => l.id), ['prise-en-main', 'demo']);
     const piped = captureIo();
     Object.assign(piped, { isTTY: false });
     assert.equal(await main(['catalog'], piped), 0);
-    assert.equal(JSON.parse(piped.lines.join('\n')).labs[0].id, 'demo');
+    assert.deepEqual(JSON.parse(piped.lines.join('\n')).labs.map((l) => l.id), ['prise-en-main', 'demo']);
   } finally {
     delete process.env.OTHILA_LAB_ROOT;
   }

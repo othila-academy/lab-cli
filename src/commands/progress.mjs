@@ -1,5 +1,5 @@
 import { formation, loadSession, loadState } from '../config.mjs';
-import { describeLab, listLabs } from '../labs.mjs';
+import { catalogLabs, describeLab } from '../labs.mjs';
 import { totals } from '../totals.mjs';
 
 const STATUS = { vert: 'vert', 'en-echec': 'en échec', aucun: 'aucun' };
@@ -12,7 +12,7 @@ export async function run({ io }) {
   const sum = await totals(f, state);
   io.out(session ? `Progression · session ${session.session} · ${session.firstName}` : 'Progression · non connecté à une session');
   let current = null;
-  for (const { id, seance } of listLabs(f)) {
+  for (const { id, seance } of catalogLabs(f)) {
     if (seance !== current) {
       current = seance;
       io.out('');

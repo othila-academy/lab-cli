@@ -62,7 +62,7 @@ test('le gabarit déjà copié n’est pas écrasé ; un arbre modifié ne bloqu
 test('lab inconnu : code 3 et le conseil npx lab update', async () => {
   const io = captureIo();
   assert.equal(await main(['start', 'nouveau'], io), 3);
-  assert.match(io.errors.join('\n'), /lab inconnu : nouveau \(disponibles : demo\) ; npx lab update pour récupérer les nouveaux labs/);
+  assert.match(io.errors.join('\n'), /lab inconnu : nouveau \(disponibles : prise-en-main, demo\) ; npx lab update pour récupérer les nouveaux labs/);
 });
 
 test("l'ancien état local, à la racine de .othila-lab/, bloque lab start sans conseiller de le commiter", async () => {

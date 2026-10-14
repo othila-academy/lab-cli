@@ -31,7 +31,7 @@ test('listLabs et loadLab sur le cours de fixtures', async () => {
   assert.equal(lab.seance, 'Séance 0 · Démonstration');
   assert.deepEqual(lab.steps, ['one']);
   assert.equal(lab.mine, null);
-  await assert.rejects(loadLab('absent', fixture), /lab inconnu : absent \(disponibles : demo\)/);
+  await assert.rejects(loadLab('absent', fixture), /lab inconnu : absent \(disponibles : prise-en-main, demo\)/);
   await assert.rejects(loadLab('../x', fixture), /lab inconnu/);
 });
 
@@ -43,8 +43,8 @@ test("l'ordre est celui du manifeste ; les brouillons sont à part, sans séance
     assert.deepEqual(listLabs(f), [{ id: 'zeta', seance: 'Séance 1' }, { id: 'alpha', seance: 'Séance 2' }]);
     assert.deepEqual(listDrafts(f), ['brouillon']);
     assert.equal((await loadLab('brouillon', f)).seance, null);
-    assert.deepEqual((await catalog(f)).labs.map((l) => [l.id, l.seance]), [['zeta', 'Séance 1'], ['alpha', 'Séance 2']]);
-    await assert.rejects(loadLab('absent', f), /disponibles : zeta, alpha, brouillon/);
+    assert.deepEqual((await catalog(f)).labs.map((l) => [l.id, l.seance]), [['prise-en-main', 'Séance 0 · Prise en main'], ['zeta', 'Séance 1'], ['alpha', 'Séance 2']]);
+    await assert.rejects(loadLab('absent', f), /disponibles : prise-en-main, zeta, alpha, brouillon/);
   });
 });
 
@@ -55,7 +55,7 @@ test("un dossier sans index.mjs ou au nom invalide n'est ni un brouillon ni une 
     writeFileSync(path.join(course.home, 'labs', '_partage', 'index.mjs'), '');
     writeFileSync(path.join(course.home, 'labs', 'README.md'), '# labs\n');
     assert.deepEqual(listDrafts(f), []);
-    assert.deepEqual((await catalog(f)).labs.map((l) => l.id), ['a']);
+    assert.deepEqual((await catalog(f)).labs.map((l) => l.id), ['prise-en-main', 'a']);
   });
 });
 
@@ -102,7 +102,10 @@ test('stepDigest : 64 hexadécimaux, stable', async () => {
 });
 
 test('catalog : la forme attendue par create-session, avec la séance', async () => {
-  assert.deepEqual(await catalog(fixture), {
+  // Le tutoriel fourni par lab-cli ouvre toujours le catalogue (builtin.test.mjs le détaille) ; ici, le lab du cours.
+  const { labs } = await catalog(fixture);
+  assert.deepEqual(labs.map((l) => l.id), ['prise-en-main', 'demo']);
+  assert.deepEqual({ labs: labs.slice(1) }, {
     labs: [{
       id: 'demo',
       title: 'Lab de démonstration',
@@ -117,7 +120,7 @@ test('lab catalog imprime le JSON du catalogue', async () => {
   try {
     const io = captureIo();
     assert.equal(await main(['catalog'], io), 0);
-    assert.equal(JSON.parse(io.lines.join('\n')).labs[0].seance, 'Séance 0 · Démonstration');
+    assert.equal(JSON.parse(io.lines.join('\n')).labs.find((l) => l.id === 'demo').seance, 'Séance 0 · Démonstration');
   } finally {
     delete process.env.OTHILA_LAB_ROOT;
   }
@@ -131,7 +134,7 @@ test('points : 100 par défaut, la valeur de l’étape sinon ; refusée hors de
   const stepWith = (points) => ({ 'index.mjs': "export const title = 'A';\nexport const steps = ['s'];\n", 's.mjs': `export const points = ${points};\nexport const checks = [{ id: 'k', label: 'k', run: async () => {} }];\n` });
   await withCourse({ labs: { a: stepWith(250) } }, async (f) => {
     assert.equal((await loadStep(await loadLab('a', f), 's')).points, 250);
-    assert.equal((await catalog(f)).labs[0].steps[0].points, 250);
+    assert.equal((await catalog(f)).labs.find((l) => l.id === 'a').steps[0].points, 250);
   });
   for (const bad of ['0', '1001', '2.5', "'100'"]) {
     await withCourse({ labs: { a: stepWith(bad) } }, async (f) => {
