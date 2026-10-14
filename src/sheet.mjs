@@ -55,6 +55,6 @@ export function formatCatalog(labs, drafts = []) {
     out.push(line(rows[i]));
   });
   if (drafts.length > 0) out.push('', DRAFTS_TITLE, ...drafts.map((d, i) => (d.broken ? `  ${padEnd(d.id, widths[0])}  illisible : ${d.broken}` : line(rows[labs.length + i]))));
-  out.push('', 'Détail d’un lab : npx lab show <lab>');
+  out.push('', "Détail d'un lab : npx lab show <lab>");
   return out;
 }

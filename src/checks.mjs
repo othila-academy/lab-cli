@@ -2,8 +2,9 @@ import { NO_SERVER } from './config.mjs';
 import { subscribe as open, wsUrlOf } from './subscription/client.mjs';
 
 // Joue les checks d'une étape dans l'ordre. Un check qui lève est un échec, quoi qu'il lève.
-// Chaque check reçoit son propre subscribe : ses abonnements sont fermés quand il se termine.
-export async function runChecks(checks, ctx) {
+// Chaque check reçoit une copie du contexte et son propre subscribe : ses abonnements sont fermés quand il se termine.
+// Ce qu'un check ajoute au contexte ne passe pas au suivant ; ctx.state, lui, est partagé.
+export async function runChecks(checks, ctx = {}) {
   const started = Date.now();
   const passed = [];
   const failed = [];

@@ -54,7 +54,7 @@ export async function run({ positionals: [labId, stepId], flags, io }) {
     // Un brouillon n'est pas dans le manifeste : ni total de lab ni total de formation qui aient un sens.
     io.out(own ? `+${entry.points} points · ${lab.id} : ${own.points} / ${own.max} · formation : ${sum.points} / ${sum.max}` : `+${entry.points} points`);
   } else if (entry.points === undefined) {
-    io.out(`les points s’acquièrent sur une étape verte : npx lab check ${lab.id} ${step.id}`);
+    io.out(`les points s'acquièrent sur une étape verte : npx lab check ${lab.id} ${step.id}`);
   }
 
   // La suite : l'étape suivante du lab, ou la fin du lab.

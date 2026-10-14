@@ -33,15 +33,15 @@ export function verifyChain(f, cwd = process.cwd(), { until } = {}) {
   const { branch } = f.reference;
   const last = chain.length > 0 ? chain[chain.length - 1].solution : BASE_TAG;
   const mainRef = branchExists(branch, cwd) ? `refs/heads/${branch}` : 'HEAD'; // un clone sans main locale : la branche courante
-  const offMain = isAncestor(last, mainRef, cwd) ? [] : [`${last} n’est pas sur ${branch} : pose le tag sur un commit de ${branch}`];
+  const offMain = isAncestor(last, mainRef, cwd) ? [] : [`${last} n'est pas sur ${branch} : pose le tag sur un commit de ${branch}`];
   const broken = [];
   if (chain.length > 0 && !isAncestor(BASE_TAG, chain[0].solution, cwd)) {
-    broken.push(`${BASE_TAG} n’est pas un ancêtre de ${chain[0].solution} : la chaîne est cassée au départ`);
+    broken.push(`${BASE_TAG} n'est pas un ancêtre de ${chain[0].solution} : la chaîne est cassée au départ`);
   }
   for (let i = 1; i < chain.length; i += 1) {
     const [prev, next] = [chain[i - 1], chain[i]];
     if (!isAncestor(prev.solution, next.solution, cwd)) {
-      broken.push(`${prev.solution} n’est pas un ancêtre de ${next.solution} : la chaîne est cassée entre ${prev.lab} et ${next.lab}`);
+      broken.push(`${prev.solution} n'est pas un ancêtre de ${next.solution} : la chaîne est cassée entre ${prev.lab} et ${next.lab}`);
     }
   }
   return [...broken, ...offMain];

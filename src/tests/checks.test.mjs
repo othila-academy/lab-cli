@@ -36,3 +36,13 @@ test('formatResults : ✓ et ✗ avec le libellé, message indenté, échec hors
   const lines = formatResults({ passed: ['a'], failed: [{ id: 'b', label: 'B échoue', message: 'regarde la trace' }, { id: 'server-unreachable', label: 'le serveur répond', message: 'injoignable' }] }, checks);
   assert.deepEqual(lines, ['  ✓ A passe', '  ✗ B échoue', '    regarde la trace', '  ✗ le serveur répond', '    injoignable']);
 });
+
+test('runChecks sans contexte : les checks tournent, subscribe dit qu’il n’y a pas de serveur', async () => {
+  const outcome = await runChecks([
+    { id: 'seul', label: 'seul', run: async () => {} },
+    { id: 'abonne', label: 'abonne', run: async ({ subscribe }) => subscribe('subscription { x }') }
+  ]);
+  assert.deepEqual(outcome.passed, ['seul']);
+  assert.equal(outcome.failed[0].id, 'abonne');
+  assert.match(outcome.failed[0].message, /pas de serveur GraphQL/);
+});

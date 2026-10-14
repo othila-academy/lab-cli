@@ -14,8 +14,8 @@ export const noAck = (ms) =>
 
 export function closedBeforeReady(code, reason) {
   if (code === 4403)
-    return 'Le serveur WebSocket refuse la connexion (4403) : onConnect l’a-t-il rejetée ? Il reçoit les connectionParams.';
+    return "Le serveur WebSocket refuse la connexion (4403) : onConnect l'a-t-il rejetée ? Il reçoit les connectionParams.";
   if (code === 4406)
-    return 'Le serveur WebSocket ne parle pas graphql-transport-ws : utilise graphql-ws (useServer), pas l’ancien subscriptions-transport-ws.';
-  return `Le serveur WebSocket a fermé la connexion (code ${code}${reason ? ` : ${reason}` : ''}) avant l’abonnement.`;
+    return "Le serveur WebSocket ne parle pas graphql-transport-ws : utilise graphql-ws (useServer), pas l'ancien subscriptions-transport-ws.";
+  return `Le serveur WebSocket a fermé la connexion (code ${code}${reason ? ` : ${reason}` : ''}) avant l'abonnement.`;
 }

@@ -32,12 +32,12 @@ test('pas de connection_ack : le délai en secondes, virgule décimale', () => {
 test('fermeture avant l’abonnement : 4403, 4406, autre code avec ou sans raison', () => {
   assert.equal(
     closedBeforeReady(4403, 'Forbidden'),
-    'Le serveur WebSocket refuse la connexion (4403) : onConnect l’a-t-il rejetée ? Il reçoit les connectionParams.'
+    "Le serveur WebSocket refuse la connexion (4403) : onConnect l'a-t-il rejetée ? Il reçoit les connectionParams."
   );
   assert.equal(
     closedBeforeReady(4406, 'Subprotocol not acceptable'),
-    'Le serveur WebSocket ne parle pas graphql-transport-ws : utilise graphql-ws (useServer), pas l’ancien subscriptions-transport-ws.'
+    "Le serveur WebSocket ne parle pas graphql-transport-ws : utilise graphql-ws (useServer), pas l'ancien subscriptions-transport-ws."
   );
-  assert.equal(closedBeforeReady(4400, 'Bad'), 'Le serveur WebSocket a fermé la connexion (code 4400 : Bad) avant l’abonnement.');
-  assert.equal(closedBeforeReady(1011, ''), 'Le serveur WebSocket a fermé la connexion (code 1011) avant l’abonnement.');
+  assert.equal(closedBeforeReady(4400, 'Bad'), "Le serveur WebSocket a fermé la connexion (code 4400 : Bad) avant l'abonnement.");
+  assert.equal(closedBeforeReady(1011, ''), "Le serveur WebSocket a fermé la connexion (code 1011) avant l'abonnement.");
 });

@@ -89,7 +89,7 @@ test('soumise en échec : rien d’acquis, et la marche à suivre ; puis au vert
   green(false);
   await run(['check', 'n1', 'observe', '--url', graphql.url, '--no-report']);
   const early = await run(['submit', 'n1', 'observe', '--text', 'Je crois.', '--no-report']);
-  assert.match(early.out, /^les points s’acquièrent sur une étape verte : npx lab check n1 observe$/m);
+  assert.match(early.out, /^les points s'acquièrent sur une étape verte : npx lab check n1 observe$/m);
   assert.equal(early.out.match(/explication enregistrée/g).length, 1, 'une seule fois « explication enregistrée »');
   assert.equal(loadState().steps['n1/observe'].points, undefined);
   green(true);
@@ -133,7 +133,7 @@ test('un check injoignable après le vert compte comme un échec : soumettre ens
   assert.equal(down.code, 2);
   const early = await run(['submit', 'n1', 'observe', '--text', 'Parce que.', '--no-report']);
   assert.doesNotMatch(early.out, /\+\d+ points/);
-  assert.match(early.out, /les points s’acquièrent sur une étape verte : npx lab check n1 observe/);
+  assert.match(early.out, /les points s'acquièrent sur une étape verte : npx lab check n1 observe/);
   assert.equal(loadState().steps['n1/observe'].points, undefined);
   await run(['check', 'n1', 'observe', '--url', graphql.url, '--no-report']);
   assert.match((await run(['submit', 'n1', 'observe', '--text', 'Parce que.', '--no-report'])).out, /\+200 points/);
