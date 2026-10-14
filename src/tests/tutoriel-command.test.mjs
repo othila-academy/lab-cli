@@ -1,6 +1,6 @@
 import { test, before, after, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { main } from '../cli.mjs';
@@ -86,4 +86,15 @@ test('le tutoriel se joue dans le dossier créé, même sans dépôt git', async
   assert.match(catalog.lines.join('\n'), /Séance 0 · Prise en main/);
   assert.equal(await main(['start', 'prise-en-main'], captureIo()), 0);
   assert.equal(await main(['check', 'prise-en-main', 'machine', '--no-report'], captureIo()), 0);
+});
+
+test('dans le dépôt d’un cours : refus, rien de créé, le tutoriel s’y joue directement', async () => {
+  mkdirSync(path.join(dir, '.othila-lab'));
+  writeFileSync(path.join(dir, '.othila-lab', 'formation.json'), JSON.stringify({ id: 'cours', title: 'Cours', seances: [] }));
+  mkdirSync(path.join(dir, 'packages'));
+  process.chdir(path.join(dir, 'packages'));
+  const io = captureIo();
+  assert.equal(await main(['tutoriel'], io), 1);
+  assert.match(io.errors.join('\n'), /tu es dans le dépôt d'un cours : npx lab start prise-en-main y joue le tutoriel, sans dossier à part/);
+  assert.ok(!existsSync(path.join(dir, 'packages', 'lab-tutoriel')));
 });

@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { BUILTIN_IDS } from '../builtin.mjs';
-import { HOME, MANIFEST, PACKAGE_VERSION } from '../config.mjs';
+import { HOME, MANIFEST, PACKAGE_VERSION, projectRoot } from '../config.mjs';
 
 const DEFAULT_DIR = 'lab-tutoriel';
 const json = (value) => `${JSON.stringify(value, null, 2)}\n`;
@@ -12,6 +12,11 @@ const gitInit = (dir) => execFileSync('git', ['init', '-q'], { cwd: dir, stdio: 
 
 // initRepo est injectable : les tests simulent une machine sans git.
 export async function run({ positionals: [name = DEFAULT_DIR], io, initRepo = gitInit }) {
+  // Dans un cours, le tutoriel est déjà là ; un dossier à part y deviendrait un dépôt imbriqué qui bloque init et catchup.
+  if (existsSync(path.join(projectRoot(), HOME, MANIFEST))) {
+    io.err(`tu es dans le dépôt d'un cours : npx lab start ${BUILTIN_IDS[0]} y joue le tutoriel, sans dossier à part`);
+    return 1;
+  }
   const dir = path.resolve(process.cwd(), String(name));
   if (existsSync(dir)) {
     io.err(`${name} existe déjà : choisis un autre nom (npx @othila-academy/lab tutoriel <dossier>)`);

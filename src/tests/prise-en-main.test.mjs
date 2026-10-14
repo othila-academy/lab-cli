@@ -115,3 +115,20 @@ test('chaque étape finit sa consigne par la question de la soumission', async (
     assert.match((await step(id)).instructions, new RegExp(`npx lab submit prise-en-main ${id}`));
   }
 });
+
+test('machine sous Windows : une seule chaîne de commande, sans tableau d’arguments avec shell (DEP0190 sous Node 24)', async () => {
+  const { answers } = await step('machine');
+  const calls = [];
+  const run = {
+    execFileSync: (...args) => calls.push(['execFileSync', ...args]),
+    execSync: (...args) => calls.push(['execSync', ...args])
+  };
+  assert.equal(answers('npm', 'win32', run), true);
+  assert.deepEqual(calls.map(([fn, cmd]) => [fn, cmd]), [['execSync', 'npm --version']]);
+  calls.length = 0;
+  assert.equal(answers('git', 'linux', run), true);
+  assert.deepEqual(calls.map(([fn, cmd, args]) => [fn, cmd, args]), [['execFileSync', 'git', ['--version']]]);
+  assert.ok(!('shell' in calls[0][3]), 'pas de shell hors Windows');
+  const failing = { execFileSync: () => { throw new Error('absent'); }, execSync: () => { throw new Error('absent'); } };
+  assert.equal(answers('npm', 'win32', failing), false);
+});
