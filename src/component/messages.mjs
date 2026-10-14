@@ -19,8 +19,10 @@ const outsideClient = (file, { clientDir }) => {
   return relative.startsWith('..') || path.isAbsolute(relative);
 };
 
-// Le texte d'une erreur avant sa pile d'appels, ses lignes jointes par un espace.
-const beforeStack = (text) => lines(String(text ?? '').replace(ANSI, '').split(/\n\s+at /)[0]).join(' ');
+// Le premier paragraphe d'une erreur, avant sa pile d'appels, ses lignes jointes par un espace : ce qui suit
+// une ligne vide (le détail d'un matcher jest-dom, du HTML) n'est pas le message de l'auteur.
+const beforeStack = (text) =>
+  lines(String(text ?? '').replace(ANSI, '').split(/\n\s+at /)[0].split(/\n\s*\n/)[0]).join(' ');
 
 // La suite d'une assertion de Vitest, `expected <valeur> to …` ou `not to …` : une valeur entre guillemets,
 // crochets ou accolades, ou un mot. Elle sépare le message de l'auteur de l'assertion, même quand
@@ -43,6 +45,8 @@ export function testFailure(failureMessage) {
   const line = firstLine(failureMessage);
   const timedOut = line.match(/^Error: Test timed out in (\d+)ms/);
   if (timedOut) return `le test a dépassé ${seconds(Number(timedOut[1]))} s : un composant attend-il une réponse qui ne vient pas ?`;
+  const hook = line.match(/^Error: Hook timed out in (\d+)ms/);
+  if (hook) return `une préparation du test (beforeEach, beforeAll) a dépassé ${seconds(Number(hook[1]))} s : attend-elle une réponse qui ne vient pas ?`;
   const text = beforeStack(failureMessage);
   if (/^AssertionError: /.test(text)) {
     const body = text.slice('AssertionError: '.length);
@@ -85,16 +89,24 @@ export function fileFailure(message, where) {
 }
 
 // Vitest n'a pas démarré (pas de rapport) : la config Vite du client en cause et la première erreur lisible,
-// plutôt que la fin brute de sa sortie d'erreur. config : la config de lab-cli, que Vitest cite aussi.
-export function startupFailure(stderr, where, config) {
+// plutôt que la fin brute de sa sortie d'erreur. config : la config de lab-cli, que Vitest cite aussi ;
+// code : le code de sortie de Vitest, quand il n'a rien écrit.
+export function startupFailure(stderr, where, config, code) {
   const text = lines(stderr);
+  if (text.length === 0) return `Vitest ne démarre pas (code ${code}), sans message d'erreur`;
   const failedConfig = text
     .map((l) => l.match(/^failed to load config from (.+)$/)?.[1])
     .find((file) => file && path.resolve(file) !== path.resolve(config));
-  const error = text
-    .map((l) => l.match(/^\w*Error(?: \[[A-Z_]+\])?: (.+)$/)?.[1])
-    .find(Boolean)
-    ?.replace(/ imported from .+$/, '');
+  // L'erreur qui arrête Vitest suit sa bannière « Startup Error » ; un plugin a pu écrire d'autres erreurs avant.
+  const banner = text.findIndex((l) => /Startup Error/.test(l));
+  const after = banner === -1 ? text : text.slice(banner + 1);
+  const at = after.findIndex((l) => /^\w*Error(?: \[[A-Z_]+\])?: /.test(l));
+  let error = at === -1 ? null : after[at].replace(/^\w*Error(?: \[[A-Z_]+\])?: /, '').replace(/ imported from .+$/, '');
+  // « Build failed with 1 error: » : la raison est sur la ligne [CODE] qui suit.
+  if (error?.endsWith(':')) {
+    const reason = after.slice(at + 1).find((l) => /^\[[A-Z_]+\]/.test(l))?.replace(/^\[[A-Z_]+\]\s*/, '');
+    if (reason) error = `${error} ${reason}`;
+  }
   if (failedConfig) return `la config Vite du client (${shown(failedConfig, where)}) ne se charge pas${error ? ` : ${error}` : ''}`;
   if (error) return `Vitest ne démarre pas : ${error}`;
   return `Vitest ne démarre pas : ${text.filter((l) => !/^at /.test(l)).slice(-3).join(' ').slice(-300)}`;

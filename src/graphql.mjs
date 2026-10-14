@@ -38,7 +38,15 @@ export async function loginAs(gqlFn, email, password = 'password123') {
 export const serverErrorMessage = (url, status, excerpt) =>
   `le serveur répond HTTP ${status} sur ${url}${excerpt ? ` (« ${excerpt} »)` : ''} : regarde la console du serveur`;
 
-// Le début lisible d'une réponse en erreur : le message GraphQL s'il y en a un, sinon la première ligne du texte.
+const ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
+const decode = (text) =>
+  text.replace(/&(#\d+|#x[0-9a-f]+|\w+);/gi, (entity, code) => {
+    if (code[0] !== '#') return ENTITIES[code.toLowerCase()] ?? entity;
+    return String.fromCodePoint(code[1].toLowerCase() === 'x' ? parseInt(code.slice(2), 16) : Number(code.slice(1)));
+  });
+
+// Le début lisible d'une réponse en erreur : le message GraphQL s'il y en a un, sinon la première ligne du texte,
+// hors de l'en-tête d'une page HTML (la page d'erreur d'Express a pour titre « Error »).
 function excerptOf(text) {
   try {
     const message = JSON.parse(text)?.errors?.[0]?.message;
@@ -46,27 +54,35 @@ function excerptOf(text) {
   } catch {
     // pas du JSON
   }
-  const line = text.replace(/<[^>]*>/g, '\n').split('\n').map((l) => l.trim()).find(Boolean) ?? '';
+  const body = text.replace(/<head[\s\S]*?<\/head>/i, '').replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>/g, '\n');
+  const line = decode(body).split('\n').map((l) => l.trim()).find(Boolean) ?? '';
   return line.slice(0, 200);
 }
 
 // Un serveur qui répond par une erreur ne se répare pas en attendant : une seconde de réponses en erreur suffit.
+// 502, 503 et 504 disent « pas encore prêt » (démarrage, mandataire devant un serveur arrêté) : on attend tout le délai.
 const ERROR_GRACE_MS = 1000;
+const NOT_READY = new Set([502, 503, 504]);
 
-// Le serveur de l'apprenant est en local : fetch convient, aucun proxy n'est en jeu.
+// Le serveur de l'apprenant est en local : fetch convient, aucun proxy n'est en jeu. Chaque essai est borné
+// par le délai restant : un serveur qui ne répond jamais, ou ne finit pas sa réponse, ne bloque pas au-delà.
 export async function waitForServer(url, timeoutMs = 15000) {
   const started = Date.now();
   let failing = null;
   while (Date.now() - started < timeoutMs) {
+    const signal = AbortSignal.timeout(Math.max(1, timeoutMs - (Date.now() - started)));
+    let res;
     try {
-      const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ query: '{ __typename }' }) });
-      if (res.ok) return;
-      failing ??= { since: Date.now() };
-      failing.status = res.status;
-      failing.excerpt = excerptOf(await res.text());
-      if (Date.now() - failing.since >= ERROR_GRACE_MS) break;
+      res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ query: '{ __typename }' }), signal });
     } catch {
       failing = null; // pas encore prêt
+    }
+    if (res?.ok) return;
+    if (res) {
+      failing ??= { since: Date.now() };
+      failing.status = res.status;
+      failing.excerpt = excerptOf(await res.text().catch(() => ''));
+      if (!NOT_READY.has(res.status) && Date.now() - failing.since >= ERROR_GRACE_MS) break;
     }
     await new Promise((resolve) => setTimeout(resolve, 250));
   }

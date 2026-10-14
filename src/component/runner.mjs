@@ -147,12 +147,12 @@ export async function runVitest({ f, labDir, files, graphqlUrl = null, timeoutMs
   const cleanup = () => rmSync(out, { recursive: true, force: true });
   try {
     const args = [bin, 'run', '--config', CONFIG, '--reporter=json', `--outputFile=${outputFile}`];
-    const { stderr, timedOut } = await spawnWithTimeout(args, { cwd: clientDir, env }, timeoutMs, cleanup);
+    const { code, stderr, timedOut } = await spawnWithTimeout(args, { cwd: clientDir, env }, timeoutMs, cleanup);
     if (timedOut) return { error: `les tests ont dépassé ${timeoutMs / 1000} s : un composant attend-il une réponse qui ne vient pas ?` };
     try {
       return { report: JSON.parse(readFileSync(outputFile, 'utf8')) };
     } catch {
-      return { error: startupFailure(stderr, { root: realPath(f.root), clientDir }, CONFIG) };
+      return { error: startupFailure(stderr, { root: realPath(f.root), clientDir }, CONFIG, code) };
     }
   } finally {
     cleanup();

@@ -4,7 +4,7 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { main } from '../cli.mjs';
-import { loadState } from '../config.mjs';
+import { loadState, saveState } from '../config.mjs';
 import { startFakeEndpoint } from '../test-helpers/fake-endpoint.mjs';
 import { startFakeGraphql } from '../test-helpers/fake-graphql.mjs';
 import { captureIo } from '../test-helpers/io.mjs';
@@ -131,6 +131,28 @@ test('serveur du fil rouge qui répond par une erreur : code 1, server-error, st
     assert.match(text, /req\.body is not set/);
     assert.match(text, /console du serveur/);
     assert.doesNotMatch(text, /npm run start:server-js/);
+  } finally {
+    await new Promise((resolve) => broken.close(resolve));
+  }
+});
+
+test('serveur qui répond par une erreur : une étape déjà soumise n’est pas rouverte, un seul check.completed', async () => {
+  const http = await import('node:http');
+  const broken = http.createServer((req, res) => {
+    req.resume();
+    req.on('end', () => {
+      res.writeHead(500, { 'content-type': 'text/plain' });
+      res.end('boom');
+    });
+  });
+  await new Promise((resolve) => broken.listen(0, '127.0.0.1', resolve));
+  const url = `http://127.0.0.1:${broken.address().port}/graphql`;
+  const before = { state: 'vert', passed: 2, total: 2, runs: 3, submitted: true, green: true, points: 100 };
+  saveState({ hints: {}, predictions: {}, steps: { 'demo/one': before } });
+  try {
+    assert.equal(await main(['check', 'demo', '--url', url, '--answer', '2'], captureIo()), 1);
+    assert.deepEqual(loadState().steps['demo/one'], { ...before, green: false });
+    assert.equal(types().filter((t) => t === 'check.completed').length, 1);
   } finally {
     await new Promise((resolve) => broken.close(resolve));
   }
