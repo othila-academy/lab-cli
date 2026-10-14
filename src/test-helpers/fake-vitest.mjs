@@ -3,7 +3,7 @@ import path from 'node:path';
 
 // Un faux Vitest installé dans le node_modules d'un client de test. Il note chaque lancement (arguments, dossier,
 // variables utiles) dans calls.jsonl et écrit le rapport que décrit plan.json :
-// { sleepMs?, noReport?, files: { "<fichier relatif au lab>": { message?, tests: { "<titre>": "passed" | "skipped" | { failed: "<message>" } } } } }
+// { sleepMs?, worker?, noReport?, files: { "<fichier relatif au lab>": { message?, tests: { "<titre>": "passed" | "skipped" | { failed: "<message>" } } } } }
 const SCRIPT = `import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -12,6 +12,12 @@ const plan = JSON.parse(readFileSync(path.join(here, 'plan.json'), 'utf8'));
 const args = process.argv.slice(2);
 const pick = (k) => process.env[k] ?? null;
 appendFileSync(path.join(here, 'calls.jsonl'), JSON.stringify({ args, cwd: process.cwd(), env: Object.fromEntries(['LAB_CLIENT_DIR', 'LAB_DIR', 'LAB_TEST_FILES', 'LAB_SETUP', 'LAB_GRAPHQL_URL', 'NO_COLOR'].map((k) => [k, pick(k)])) }) + '\\n');
+// worker : un processus de travail, comme ceux de Vitest ; les pids sont notés dans pids.json.
+if (plan.worker) {
+  const { spawn } = await import('node:child_process');
+  const worker = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 60000)'], { stdio: 'ignore' });
+  writeFileSync(path.join(here, 'pids.json'), JSON.stringify({ vitest: process.pid, worker: worker.pid }));
+}
 if (plan.sleepMs) await new Promise((r) => setTimeout(r, plan.sleepMs));
 if (plan.noReport) { console.error('plantage simulé'); process.exit(1); }
 const out = args.find((a) => a.startsWith('--outputFile=')).slice('--outputFile='.length);
@@ -46,5 +52,12 @@ export function installFakeVitest(clientDir, plan = { files: {} }, { engines } =
       return [];
     }
   };
-  return { setPlan, calls };
+  const pids = () => {
+    try {
+      return JSON.parse(readFileSync(path.join(dir, 'pids.json'), 'utf8'));
+    } catch {
+      return null;
+    }
+  };
+  return { setPlan, calls, pids };
 }

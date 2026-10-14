@@ -1,6 +1,6 @@
 // Lance le Vitest du cours une fois sur les tests de composants d'une étape, avec la config de lab-cli,
 // et rend son rapport JSON ; ou un message commun à tous les checks de composants quand rien n'a pu tourner.
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
@@ -77,26 +77,45 @@ function engineProblem(clientDir) {
   return null;
 }
 
+// Arrête Vitest et ses processus de travail. Sous Unix, ils forment un groupe : on tue le groupe ;
+// sous Windows, child.kill n'atteint pas les processus de travail : taskkill /T emporte l'arbre.
+export function stopTree(child, { platform = process.platform, runSync = spawnSync } = {}) {
+  if (platform === 'win32') {
+    runSync('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore', windowsHide: true });
+    return;
+  }
+  try {
+    process.kill(-child.pid, 'SIGKILL');
+  } catch {
+    child.kill('SIGKILL');
+  }
+}
 
-// Sous Unix, Vitest et ses processus de travail forment un groupe : le délai les arrête tous.
-function spawnWithTimeout(args, options, timeoutMs) {
+const EXIT_ON = { SIGINT: 130, SIGTERM: 143 };
+
+// Lance Vitest avec un délai. Ctrl+C (ou SIGTERM) pendant les tests arrête Vitest et ses processus de travail,
+// appelle cleanup (le dossier du rapport), puis termine lab avec le code d'usage (130, 143).
+function spawnWithTimeout(args, options, timeoutMs, cleanup) {
   return new Promise((resolve) => {
     const group = process.platform !== 'win32';
-    const child = spawn(process.execPath, args, { ...options, detached: group, stdio: ['ignore', 'ignore', 'pipe'] });
+    const child = spawn(process.execPath, args, { ...options, detached: group, stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true });
     let stderr = '';
     let timedOut = false;
     child.stderr.on('data', (chunk) => (stderr += chunk));
     const timer = setTimeout(() => {
       timedOut = true;
-      try {
-        if (group) process.kill(-child.pid, 'SIGKILL');
-        else child.kill('SIGKILL');
-      } catch {
-        child.kill('SIGKILL');
-      }
+      stopTree(child);
     }, timeoutMs);
+    const interrupted = (signal) => {
+      clearTimeout(timer);
+      stopTree(child);
+      cleanup();
+      process.exit(EXIT_ON[signal]);
+    };
+    for (const signal of Object.keys(EXIT_ON)) process.once(signal, interrupted);
     child.on('close', (code) => {
       clearTimeout(timer);
+      for (const signal of Object.keys(EXIT_ON)) process.off(signal, interrupted);
       resolve({ code, stderr, timedOut });
     });
   });
@@ -125,9 +144,10 @@ export async function runVitest({ f, labDir, files, graphqlUrl = null, timeoutMs
   };
   if (graphqlUrl) env.LAB_GRAPHQL_URL = graphqlUrl;
   else delete env.LAB_GRAPHQL_URL;
+  const cleanup = () => rmSync(out, { recursive: true, force: true });
   try {
     const args = [bin, 'run', '--config', CONFIG, '--reporter=json', `--outputFile=${outputFile}`];
-    const { stderr, timedOut } = await spawnWithTimeout(args, { cwd: clientDir, env }, timeoutMs);
+    const { stderr, timedOut } = await spawnWithTimeout(args, { cwd: clientDir, env }, timeoutMs, cleanup);
     if (timedOut) return { error: `les tests ont dépassé ${timeoutMs / 1000} s : un composant attend-il une réponse qui ne vient pas ?` };
     try {
       return { report: JSON.parse(readFileSync(outputFile, 'utf8')) };
@@ -135,7 +155,7 @@ export async function runVitest({ f, labDir, files, graphqlUrl = null, timeoutMs
       return { error: startupFailure(stderr, { root: realPath(f.root), clientDir }, CONFIG) };
     }
   } finally {
-    rmSync(out, { recursive: true, force: true });
+    cleanup();
   }
 }
 
