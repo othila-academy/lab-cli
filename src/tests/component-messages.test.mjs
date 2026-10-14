@@ -93,3 +93,14 @@ test('délai de Vitest dépassé : dit en français, en secondes', () => {
   assert.equal(testFailure(timedOut(5000)), 'le test a dépassé 5 s : un composant attend-il une réponse qui ne vient pas ?');
   assert.equal(testFailure(timedOut(300)), 'le test a dépassé 0,3 s : un composant attend-il une réponse qui ne vient pas ?');
 });
+
+test('Vitest ne démarre pas : la première erreur, sans pile ni couleurs ; à défaut, la fin de la sortie', async () => {
+  const { startupFailure } = await import('../component/messages.mjs');
+  const config = '/lab-cli/src/component/vitest.config.mjs';
+  const stderr = '\x1b[31m⎯⎯⎯ Startup Error ⎯⎯⎯\x1b[0m\nError: Browser Mode was enabled, but provider was not specified anywhere.\n    at resolveConfig (file:///x.js:1:1)\n';
+  assert.equal(startupFailure(stderr, where, config), 'Vitest ne démarre pas : Browser Mode was enabled, but provider was not specified anywhere.');
+  assert.equal(
+    startupFailure(`failed to load config from ${config}\nsortie inattendue\n    at x (y.js:1:1)\nfin`, where, config),
+    'Vitest ne démarre pas : failed to load config from /lab-cli/src/component/vitest.config.mjs sortie inattendue fin'
+  );
+});

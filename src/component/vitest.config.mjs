@@ -26,5 +26,13 @@ const merged = vite.mergeConfig(loaded?.config ?? {}, {
 merged.test.include = files;
 merged.test.setupFiles = setup ? [setup] : [];
 merged.test.exclude = ['**/node_modules/**'];
+// Les réglages de test de l'étudiant qui changeraient ce qui tourne, ou planteraient avant les tests :
+// projets, couverture, préparation globale, mode navigateur, vérification des types.
+delete merged.test.projects;
+delete merged.test.workspace;
+merged.test.globalSetup = [];
+merged.test.coverage = { enabled: false };
+merged.test.browser = { enabled: false };
+merged.test.typecheck = { enabled: false };
 
 export default merged;

@@ -9,6 +9,10 @@ export function componentTest({ id, label, file, test = id, passesOnStart = fals
   if (typeof file !== 'string' || !TEST_FILE.test(file)) {
     throw new Error(`componentTest ${id} : file doit nommer un fichier de test .js, .jsx, .mjs, .ts ou .tsx du dossier du lab`);
   }
+  // Vitest prend un fichier existant tel quel, même si son nom ressemble à un motif ; mais Vite coupe un chemin à ? ou #.
+  if (/[?#]/.test(file)) {
+    throw new Error(`componentTest ${id} : file ne peut pas contenir ? ni # (Vite les lit comme une requête ou une ancre d'URL) : ${file}`);
+  }
   const normalized = path.posix.normalize(file.replaceAll('\\', '/'));
   // Un chemin absolu, y compris Windows (C:\…, C:…), sortirait du dossier du lab.
   if (path.posix.isAbsolute(normalized) || /^[A-Za-z]:/.test(normalized) || normalized === '..' || normalized.startsWith('../')) {

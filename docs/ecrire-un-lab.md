@@ -460,6 +460,11 @@ Le retirer de `formation.json` et supprimer son dossier `.othila-lab/labs/<id>/`
 | `origin/main introuvable` (`lab update`) | le remote du cours n'est pas `origin`, ou sa branche n'est pas `main` : `git remote -v`, et le champ `reference` de `formation.json` |
 | « hors ligne : labs de la dernière référence récupérée » | `lab update` n'a pas joint le remote : les définitions viennent du dernier fetch ; relancer une fois en ligne |
 | `lab check` sort en code 2 | le serveur de l'apprenant ne répond pas : `npm run start:server-js`, ou préciser `--url` |
+| `le serveur répond HTTP 500 sur …` (`server-error`, code 1) | le serveur tourne mais répond par une erreur à `{ __typename }` ; le début de sa réponse est cité, la cause est dans la console du serveur (par exemple `express.json()` oublié avant `expressMiddleware`) |
+| `la config Vite du client (…) ne se charge pas : …` | le `vite.config.js` du client plante au chargement (plugin absent, erreur de syntaxe) : le corriger, `npx vite build` le montre aussi |
+| `Vitest ne démarre pas : …` | Vitest s'arrête avant les tests ; la première erreur est citée. Les réglages de test du client (`projects`, `coverage`, `globalSetup`, `browser`, `typecheck`) sont déjà neutralisés par lab check |
+| `le test a dépassé 5 s : …` | un test de composant attend un élément qui n'arrive pas : un `findBy…` ou un `waitFor` sans fin, souvent une requête sans réponse |
+| `componentTest x : file ne peut pas contenir ? ni #` | renommer le fichier de test : Vite coupe un chemin à `?` ou `#` |
 | `Vitest n'est pas installé pour …` | installer Vitest, jsdom et `@testing-library/react` en devDependencies du client |
 | `le paquet X est introuvable depuis .othila-lab/…` | le client n'est ni à la racine ni un workspace du cours : ses dépendances ne sont pas visibles depuis `.othila-lab/` ; en faire un workspace (`"workspaces": ["packages/*"]`), ou installer le paquet à la racine |
 | `test « x » introuvable dans tests/….test.jsx` | le titre du test et le `test` du check (ou son `id`) diffèrent |
