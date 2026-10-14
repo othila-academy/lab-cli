@@ -19,7 +19,7 @@ const real = realPath;
 export function outcomeOf(report, { file, test, labDir, root, clientDir }) {
   const wanted = real(path.join(labDir, file));
   const entry = report.testResults.find((r) => real(r.name) === wanted);
-  if (!entry) return `aucun résultat pour ${file} : Vitest ne l’a pas joué`;
+  if (!entry) return `aucun résultat pour ${file} : Vitest ne l'a pas joué`;
   const result = entry.assertionResults.find((a) => a.title === test || a.fullName === test);
   if (!result) {
     if (entry.assertionResults.length === 0 && entry.message) return fileFailure(entry.message, { root, clientDir });
@@ -29,5 +29,5 @@ export function outcomeOf(report, { file, test, labDir, root, clientDir }) {
   if (result.status === 'failed') return testFailure(result.failureMessages[0]) || `le test « ${test} » a échoué`;
   // Un hook en échec (beforeAll, préparation) laisse le test non joué : sa cause est dans le message du fichier.
   if (entry.message) return fileFailure(entry.message, { root, clientDir });
-  return `le test « ${test} » n’a pas été joué (${result.status})`;
+  return `le test « ${test} » n'a pas été joué (${result.status})`;
 }

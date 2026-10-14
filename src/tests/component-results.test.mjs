@@ -24,9 +24,9 @@ test('fichier qui ne charge pas : son message traduit pour chaque check', () => 
 
 test('test introuvable, fichier absent du rapport, test non joué', () => {
   assert.equal(outcomeOf(fixture('mixte'), { ...where, file, test: 'inconnu' }), 'test « inconnu » introuvable dans tests/liste.test.jsx');
-  assert.equal(outcomeOf(fixture('mixte'), { ...where, file: 'tests/autre.test.jsx', test: 'x' }), 'aucun résultat pour tests/autre.test.jsx : Vitest ne l’a pas joué');
+  assert.equal(outcomeOf(fixture('mixte'), { ...where, file: 'tests/autre.test.jsx', test: 'x' }), "aucun résultat pour tests/autre.test.jsx : Vitest ne l'a pas joué");
   const skipped = { testResults: [{ name: path.join(where.labDir, file), status: 'passed', message: '', assertionResults: [{ ancestorTitles: [], fullName: 't', title: 't', status: 'skipped', failureMessages: [] }] }] };
-  assert.equal(outcomeOf(skipped, { ...where, file, test: 't' }), 'le test « t » n’a pas été joué (skipped)');
+  assert.equal(outcomeOf(skipped, { ...where, file, test: 't' }), "le test « t » n'a pas été joué (skipped)");
 });
 
 test('nom complet avec describe : accepté comme le titre', () => {

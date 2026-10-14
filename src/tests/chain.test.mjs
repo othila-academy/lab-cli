@@ -75,8 +75,8 @@ test('verifyChain : un tag de solution posé hors de la chaîne casse la chaîne
   git('tag', 'solution/b');
   git('checkout', '-q', 'main');
   assert.deepEqual(verifyChain(f, course.root), [
-    'solution/a n’est pas un ancêtre de solution/b : la chaîne est cassée entre a et b',
-    'solution/b n’est pas un ancêtre de solution/c : la chaîne est cassée entre b et c'
+    "solution/a n'est pas un ancêtre de solution/b : la chaîne est cassée entre a et b",
+    "solution/b n'est pas un ancêtre de solution/c : la chaîne est cassée entre b et c"
   ]);
 });
 
@@ -87,7 +87,7 @@ test('verifyChain : base qui ne précède pas la première solution', () => {
   commit('autre départ');
   git('tag', '-f', 'base');
   git('checkout', '-q', 'main');
-  assert.deepEqual(verifyChain(f, course.root), ['base n’est pas un ancêtre de solution/a : la chaîne est cassée au départ']);
+  assert.deepEqual(verifyChain(f, course.root), ["base n'est pas un ancêtre de solution/a : la chaîne est cassée au départ"]);
 });
 
 test('verifyChain : une chaîne sans lab ne demande que base', () => {
@@ -116,6 +116,6 @@ test('verifyChain : une solution posée hors de main est signalée, même si ell
   git('tag', 'solution/c');
   git('checkout', '-q', 'main');
   git('reset', '-q', '--hard', 'solution/b');
-  assert.deepEqual(verifyChain(f, course.root), ['solution/c n’est pas sur main : pose le tag sur un commit de main']);
+  assert.deepEqual(verifyChain(f, course.root), ["solution/c n'est pas sur main : pose le tag sur un commit de main"]);
   assert.deepEqual(verifyChain(f, course.root, { until: 'b' }), []);
 });

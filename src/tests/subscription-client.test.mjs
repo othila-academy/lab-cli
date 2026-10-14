@@ -128,7 +128,7 @@ test('fermeture pendant l’attente : null tout de suite, closed garde code et r
 test('fermeture pendant ready : subscribe lève, avec le code et la raison du serveur', async () => {
   server = await startFakeWs({ onSubscribe: ({ socket }) => socket.close(4500, 'jwt malformed') });
   await assert.rejects(subscribe(server.url, Q, { ready: 100 }), {
-    message: 'Le serveur WebSocket a fermé la connexion (code 4500 : jwt malformed) avant l’abonnement.'
+    message: "Le serveur WebSocket a fermé la connexion (code 4500 : jwt malformed) avant l'abonnement."
   });
 });
 
@@ -222,11 +222,51 @@ test('fermetures avant l’abonnement : 4403, 4406, autre code', async () => {
   for (const [code, reason, expected] of [
     [4403, 'Forbidden', /refuse la connexion \(4403\)/],
     [4406, 'Subprotocol not acceptable', /ne parle pas graphql-transport-ws/],
-    [4400, 'Bad', /a fermé la connexion \(code 4400 : Bad\) avant l’abonnement/]
+    [4400, 'Bad', /a fermé la connexion \(code 4400 : Bad\) avant l'abonnement/]
   ]) {
     server = await startFakeWs({ closeOnInit: { code, reason } });
     await assert.rejects(subscribe(server.url, Q), { message: expected });
     await server.close();
     server = null;
   }
+});
+
+test('un message JSON null du serveur est ignoré : la suite arrive normalement', async () => {
+  server = await startFakeWs({
+    onSubscribe: ({ socket, send, id }) => {
+      socket.send('null');
+      setTimeout(() => send({ id, type: 'next', payload: { data: { created: 1 } } }), 50);
+    }
+  });
+  const crashes = [];
+  const record = (error) => crashes.push(error);
+  process.on('uncaughtException', record);
+  try {
+    const sub = await open(server.url, Q);
+    assert.deepEqual(await sub.next({ timeout: 1000 }), { data: { created: 1 } });
+  } finally {
+    process.off('uncaughtException', record);
+  }
+  assert.deepEqual(crashes, []);
+});
+
+test('une adresse qui n’est pas ws:// ou wss:// est refusée en français', async () => {
+  await assert.rejects(subscribe('http://127.0.0.1:4000/graphql', Q), (error) => {
+    assert.match(error.message, /adresse ws:\/\/ ou wss:\/\/ attendue/);
+    assert.match(error.message, /http:\/\/127\.0\.0\.1:4000\/graphql/);
+    return true;
+  });
+  await assert.rejects(subscribe('pas une adresse', Q), (error) => {
+    assert.match(error.message, /adresse WebSocket invalide : pas une adresse/);
+    return true;
+  });
+});
+
+test('next({ timeout: Infinity }) attend sans limite ; next(null) vaut next()', async () => {
+  server = await startFakeWs({
+    onSubscribe: ({ send, id }) => setTimeout(() => send({ id, type: 'next', payload: { data: { created: 1 } } }), 300)
+  });
+  const sub = await open(server.url, Q);
+  assert.deepEqual(await sub.next({ timeout: Infinity }), { data: { created: 1 } });
+  assert.equal(await sub.next(null), null);
 });

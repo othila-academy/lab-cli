@@ -224,6 +224,10 @@ Les apprenants récupèrent le lab avec `npx lab update` : leur `.othila-lab/` s
 | `lab`, `step` | le lab et l'étape en cours, dont `lab.dir`, le dossier du lab |
 | `startServer({ env })` | lance un second serveur du cours, sur un port libre, avec des variables d'environnement ; rend `{ url, stop }` |
 | `runChecks(checks, ctx)` | joue une liste de checks, par exemple ceux écrits par l'apprenant |
+| `subscribe(query, { variables, token })` | s'abonne comme un client WebSocket ; fermé à la fin du check (voir [Un lab de subscription](#un-lab-de-subscription)) |
+| `state` | un objet partagé par les checks d'une étape |
+
+Chaque check reçoit sa propre copie du contexte : ce qu'un check y ajoute ne passe pas au suivant. Pour transmettre une valeur d'un check à l'autre, passer par `state`.
 
 Le paquet exporte aussi `assert`, `expectData`, `expectErrorCode`, `loginAs(gql, email)` pour les labs qui demandent un compte connecté, et `componentTest` pour les labs de client (voir [Un lab de client](#un-lab-de-client--tests-de-composants)).
 
@@ -474,5 +478,5 @@ Le retirer de `formation.json` et supprimer son dossier `.othila-lab/labs/<id>/`
 | « n'a pas accepté la connexion en 3 s (connection_ack attendu) » | Une WebSocket est ouverte, mais rien ne parle graphql-ws dessus : `useServer({ schema }, wsServer)` manque |
 | « refuse la connexion (4403) » | `onConnect` du serveur a rejeté la connexion : il reçoit les `connectionParams` (le jeton passé par `subscribe(query, { token })`) |
 | « ne parle pas graphql-transport-ws » (4406) | Le serveur a accepté la connexion puis refusé le protocole : utiliser graphql-ws (`useServer`), pas l'ancien subscriptions-transport-ws (qui, lui, fait échouer la poignée de main : « ne répond pas en WebSocket ») |
-| « a fermé la connexion (code … : …) avant l’abonnement » | Le serveur a coupé avant que l'abonnement soit prêt ; le code et la raison viennent de lui. Souvent 4500 : le `context` de `useServer` lève (un jeton absent ou illisible dans les `connectionParams`, par exemple) |
+| « a fermé la connexion (code … : …) avant l'abonnement » | Le serveur a coupé avant que l'abonnement soit prêt ; le code et la raison viennent de lui. Souvent 4500 : le `context` de `useServer` lève (un jeton absent ou illisible dans les `connectionParams`, par exemple) |
 | « serveur injoignable sur http://… » levé par `subscribe` | Plus rien ne répond, même en HTTP : le serveur s'est arrêté pendant le check, ou `--url` désigne une autre adresse |

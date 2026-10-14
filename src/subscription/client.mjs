@@ -32,7 +32,20 @@ async function explain(failure, url) {
   return closedBeforeReady(failure.code, failure.reason);
 }
 
+// L'adresse d'un abonnement, contrôlée avant de l'ouvrir : le WebSocket de Node lèverait en anglais.
+function checkedUrl(url) {
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new Error(`adresse WebSocket invalide : ${url}`);
+  }
+  if (parsed.protocol !== 'ws:' && parsed.protocol !== 'wss:') throw new Error(`adresse ws:// ou wss:// attendue, reçu : ${url}`);
+  return url;
+}
+
 export async function subscribe(url, query, { variables, token, connectionParams, ready = 200, ackTimeout = 3000 } = {}) {
+  checkedUrl(url);
   const params = { ...connectionParams, ...(token ? { authorization: `Bearer ${token}` } : {}) };
   const queue = [];
   const waiters = [];
@@ -66,6 +79,8 @@ export async function subscribe(url, query, { variables, token, connectionParams
     } catch {
       return;
     }
+    // Un message qui n'est pas un objet (null, nombre) n'appartient pas au protocole : on l'ignore.
+    if (!message || typeof message !== 'object') return;
     if (message.type === 'connection_ack') settle.resolve();
     else if (message.type === 'ping') send({ type: 'pong' });
     else if (message.id !== ID) return;
@@ -109,7 +124,9 @@ export async function subscribe(url, query, { variables, token, connectionParams
     get closed() {
       return closed;
     },
-    next({ timeout = 3000 } = {}) {
+    // timeout : 3000 ms par défaut ; Infinity attend sans limite (setTimeout ramènerait Infinity à 1 ms).
+    next(options) {
+      const timeout = options?.timeout ?? 3000;
       if (queue.length > 0) return Promise.resolve(queue.shift());
       if (done) return Promise.resolve(null);
       return new Promise((resolve) => {
@@ -117,10 +134,13 @@ export async function subscribe(url, query, { variables, token, connectionParams
           clearTimeout(timer);
           resolve(item);
         };
-        const timer = setTimeout(() => {
-          waiters.splice(waiters.indexOf(waiter), 1);
-          resolve(null);
-        }, timeout);
+        const timer =
+          timeout === Infinity
+            ? null
+            : setTimeout(() => {
+                waiters.splice(waiters.indexOf(waiter), 1);
+                resolve(null);
+              }, timeout);
         waiters.push(waiter);
       });
     },
