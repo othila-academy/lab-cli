@@ -93,9 +93,14 @@ export async function loadStep(lab, stepId) {
   const hints = Array.isArray(mod.hints) ? mod.hints : [];
   if (hints.length > 3) throw new Error(`${file} : trois indices au plus (le contrat limite hint.revealed.level à 3)`);
   const instructions = typeof mod.instructions === 'string' && mod.instructions.trim() ? mod.instructions.trim() : null;
+  // La question à laquelle répond l'explication soumise (lab submit), rappelée au vert et à la soumission.
+  if (mod.explain !== undefined && (typeof mod.explain !== 'string' || !mod.explain.trim())) {
+    throw new Error(`${file} : explain : la question de l'explication, en texte`);
+  }
+  const explain = mod.explain?.trim() ?? null;
   const points = mod.points ?? DEFAULT_STEP_POINTS;
   if (!Number.isInteger(points) || points < 1 || points > 1000) throw new Error(`${file} : points : entier de 1 à 1000 attendu (valeur de l'étape)`);
-  return { id: stepId, title: mod.title ?? stepId, instructions, checks, hints, prediction: mod.prediction ?? null, points, file };
+  return { id: stepId, title: mod.title ?? stepId, instructions, checks, hints, prediction: mod.prediction ?? null, explain, points, file };
 }
 
 // Empreinte du module d'étape, envoyée dans check.completed (contrat 4.3, stepDigest).

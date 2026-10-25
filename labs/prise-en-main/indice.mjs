@@ -3,6 +3,7 @@ import { readCarnet } from './carnet.mjs';
 
 export const title = "Demander de l'aide";
 export const points = 10;
+export const explain = 'Quand vaut-il mieux demander un indice que chercher seul ?';
 export const instructions = `Le carnet doit donner ta date d'arrivée en formation, dans arrivee, au format attendu. Le message d'échec n'en dit pas plus, exprès.
 Bloqué ? npx lab hint prise-en-main indice révèle un indice ; son coût en points est annoncé avant. Puis npx lab progress montre tes points.
 Pour finir : npx lab submit prise-en-main indice, à la question « Quand vaut-il mieux demander un indice que chercher seul ? »`;

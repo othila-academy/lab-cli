@@ -130,7 +130,8 @@ La séance d'un lab se déclare dans `formation.json`, pas dans `index.mjs` : `s
 import { assert, expectData } from '@othila-academy/lab';
 export const title = 'Observer';
 export const instructions = `La consigne, en deux à quatre lignes.`;   // facultatif
-export const prediction = { promptId: 'slug', question: '…', choices: ['1', '21'], expected: '21' };   // facultatif
+export const explain = 'La question à laquelle répond lab submit';   // facultatif, rappelée au vert et à la soumission
+export const prediction = { promptId: 'slug', question: '…', choices: ['1', '21'], expected: '21' };   // facultatif, réponse reconnue sans casse ni accents
 export const checks = [{ id: 'slug', label: 'phrase affichée', passesOnStart: false, run: async ({ url, gql, subscribe, state, lab, step, startServer, runChecks }) => { /* assert… */ } }];
 export const hints = ['une question', 'une direction', 'une quasi-solution'];   // trois au plus
 export const points = 200;   // facultatif, valeur de l'étape : entier de 1 à 1000, 100 par défaut

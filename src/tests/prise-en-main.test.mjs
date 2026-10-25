@@ -137,3 +137,17 @@ test('carnet de départ enregistré sous Windows (BOM, CRLF) : la même ligne et
   writeCarnet(`\uFEFF${TEMPLATE.replace(/\n/g, '\r\n')}`);
   assert.match(messages(await run('reparer')).lisible, /\(ligne 5, colonne 1\)/);
 });
+
+test('chaque étape donne la question de son explication (explain), celle que cite la fiche', async () => {
+  for (const id of ['machine', 'reparer', 'predire', 'indice']) {
+    const { explain, instructions } = await step(id);
+    assert.equal(typeof explain, 'string', id);
+    assert.ok(instructions.includes(`« ${explain} »`), id);
+  }
+});
+
+test('predire : la fiche fait lancer le check, qui pose la question de prédiction', async () => {
+  const { instructions } = await step('predire');
+  assert.doesNotMatch(instructions, /--answer/);
+  assert.match(instructions, /npx lab check prise-en-main predire/);
+});

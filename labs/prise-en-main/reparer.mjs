@@ -3,6 +3,7 @@ import { carnetText, errorPlace, readCarnet } from './carnet.mjs';
 
 export const title = 'Lire un échec et corriger';
 export const points = 10;
+export const explain = "Qu'est-ce que le message d'échec t'a dit de faire ?";
 export const instructions = `lab start a créé ton carnet ; son chemin est affiché au-dessus de la fiche. Lance npx lab check prise-en-main reparer : il échoue.
 Lis le message : il dit où regarder et quoi faire. Corrige le carnet dans ton éditeur, relance, jusqu'au vert.
 Pour finir : npx lab submit prise-en-main reparer, à la question « Qu'est-ce que le message d'échec t'a dit de faire ? »`;

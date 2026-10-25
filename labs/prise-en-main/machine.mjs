@@ -4,6 +4,7 @@ import { MIN_NODE_MAJOR } from '../../src/env.mjs';
 
 export const title = 'Ta machine est prête';
 export const points = 10;
+export const explain = 'Que vérifie un check, et que ferais-tu si une ligne était rouge ?';
 export const instructions = `Lance npx lab check prise-en-main machine : il vérifie que Node, npm et git répondent sur ta machine.
 Tout est vert ? Une étape se termine par une explication : npx lab submit prise-en-main machine, en deux phrases, à la question « Que vérifie un check, et que ferais-tu si une ligne était rouge ? »`;
 

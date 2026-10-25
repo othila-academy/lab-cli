@@ -11,11 +11,35 @@ import { startServer } from '../servers.mjs';
 const USAGE = 'usage : lab check <lab> [étape] [--url URL] [--answer RÉPONSE] [--json] [--no-report]';
 const SERVER_WAIT_MS = 5000;
 
-async function askPrediction(io, prediction, answerFlag) {
-  if (answerFlag !== undefined) return String(answerFlag);
-  io.out(`\nAvant de lancer : ${prediction.question}`);
-  if (prediction.choices?.length) io.out(`  choix : ${prediction.choices.join(' · ')}`);
-  return io.question('ta prédiction :');
+// Une réponse se compare sans casse, accents, apostrophe typographique ni espaces de trop : « il s'arrete » vaut
+// « il s’arrête ». La réponse retenue est alors le choix lui-même, tel qu'écrit dans l'étape.
+const plain = (text) => String(text).normalize('NFD').replace(/\p{M}/gu, '').replace(/[’‘`´]/g, "'").replace(/\s+/g, ' ').trim().toLowerCase();
+export const matchChoice = (answer, choices) => choices.find((choice) => plain(choice) === plain(answer)) ?? null;
+
+// La question est toujours affichée, même avec --answer (sauf en --json, fait pour une machine) : on prédit en
+// connaissant la question. Au terminal, une réponse hors des choix est redemandée ; avec --answer, elle est refusée.
+async function askPrediction(io, prediction, answerFlag, quiet) {
+  const choices = prediction.choices ?? [];
+  const say = quiet ? () => {} : (line) => io.out(line);
+  say(`\nAvant de lancer : ${prediction.question}`);
+  if (choices.length) say(`  choix : ${choices.join(' · ')}`);
+  const pick = (raw) => (choices.length ? matchChoice(raw, choices) : String(raw).trim() || null);
+  const missing = 'une prédiction est attendue avant de lancer les checks';
+  if (answerFlag !== undefined) {
+    const raw = String(answerFlag).trim();
+    say(`ta prédiction : ${raw}`);
+    if (!raw) throw new Error(missing);
+    const answer = pick(raw);
+    if (!answer) throw new Error(`${raw} n'est pas l'un des choix : ${choices.join(' · ')}`);
+    return answer;
+  }
+  for (;;) {
+    const raw = String(await io.question('ta prédiction :')).trim();
+    if (!raw) throw new Error(missing);
+    const answer = pick(raw);
+    if (answer) return answer;
+    io.out(`  réponds par l'un des choix : ${choices.join(' · ')}`);
+  }
 }
 
 // Le serveur ne répond pas (code 2), ou répond par une erreur : c'est alors au code de l'apprenant de changer (code 1).
@@ -53,8 +77,7 @@ export async function run({ positionals: [labId, stepId], flags, io }) {
     // la prédiction n'est prise en compte que si --answer la fournit.
     const askable = flags.answer !== undefined || !flags.json;
     if (step.prediction && !state.predictions[key] && askable) {
-      const answer = (await askPrediction(io, step.prediction, flags.answer)).trim();
-      if (!answer) throw new Error('une prédiction est attendue avant de lancer les checks');
+      const answer = await askPrediction(io, step.prediction, flags.answer, Boolean(flags.json));
       const correct = step.prediction.expected === undefined ? null : answer === String(step.prediction.expected);
       state.predictions[key] = { answer, correct };
       saveState(state);
@@ -127,6 +150,7 @@ export async function run({ positionals: [labId, stepId], flags, io }) {
         io.out(acquired
           ? `  Étape validée. Explique en deux phrases : npx lab submit ${lab.id} ${step.id}`
           : `  Étape validée. Explique en deux phrases pour acquérir ${pointsFor(step.points, state.hints[key] ?? 0)} points : npx lab submit ${lab.id} ${step.id}`);
+        if (step.explain) io.out(`  Question : ${step.explain}`);
       }
     }
     if (fault) break;

@@ -111,6 +111,8 @@ export const title = "Exposer l'interface Node";
 export const instructions = `Ajoute à Query un champ node qui prend un id et renvoie un User ou un Event.
 Un id inconnu rend null.`;
 
+export const explain = 'Pourquoi le serveur a-t-il besoin de résoudre le type concret de node ?';  // la question de lab submit
+
 export const prediction = {
   promptId: 'node-101-typename',                 // un identifiant stable de la question
   question: 'Une fois node(id) en place, que renvoie { node(id: "101") { __typename } } ?',
@@ -136,6 +138,10 @@ export const hints = [
   'node(id: ID!): Node dans typeDefs.js, et son résolveur dans query.js.'
 ];
 ```
+
+**La question de l'explication** (`explain`, facultative) est celle à laquelle répond `lab submit` : elle est rappelée quand l'étape passe au vert, puis au moment de soumettre. Citez-la aussi dans la consigne, pour que l'apprenant la connaisse avant de commencer.
+
+**La prédiction** est posée au premier `lab check` de l'étape, avec ses choix, et l'est aussi quand l'apprenant passe `--answer`. La réponse est reconnue sans casse, accents, apostrophe typographique ni espaces de trop ; une réponse hors des choix est redemandée au terminal, et refusée (code 3) avec `--answer`. Des choix courts restent les plus sûrs : quand les options sont longues, mettez-les dans la question (`a) …`, `b) …`) et faites répondre par la lettre (`choices: ['a', 'b', 'c']`).
 
 L'objectif à atteindre d'une étape, c'est la liste des `label` de ses checks : la fiche les affiche sous « Ce qui sera vérifié ». Le code complet de l'exemple est dans `.othila-lab/labs/interface-node/` du dépôt du cours, et le format de référence dans le [README](../README.md#écrire-un-lab).
 

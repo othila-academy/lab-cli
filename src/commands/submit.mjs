@@ -22,6 +22,7 @@ export async function run({ positionals: [labId, stepId], flags, io }) {
   if (!labId || !stepId) throw new Error(USAGE);
   const lab = await loadLab(labId);
   const step = await loadStep(lab, stepId);
+  if (step.explain) io.out(`Question : ${step.explain}`);
   const text = (flags.text !== undefined ? String(flags.text) : await readExplanation(io)).trim();
   if (text.length === 0) {
     io.err("l'explication est vide");

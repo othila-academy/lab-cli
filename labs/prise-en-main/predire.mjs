@@ -3,8 +3,10 @@ import { readCarnet } from './carnet.mjs';
 
 export const title = 'Prédire avant de vérifier';
 export const points = 10;
+export const explain = "Ta prédiction était-elle juste, et qu'est-ce qui l'a tranchée ?";
 export const instructions = `Le carnet doit lister tes objectifs pour la formation, dans objectifs.
-Avant de lancer le check, lab te demande de prédire son résultat. Réponds directement : npx lab check prise-en-main predire --answer <ta réponse>.
+Lance npx lab check prise-en-main predire : avant de le jouer, lab te pose une question et ses choix ; réponds par l'un
+d'eux, au jugé. Le check dit ensuite si ta prédiction était juste.
 Puis complète la liste jusqu'au vert, et termine : npx lab submit prise-en-main predire, à la question « Ta prédiction était-elle juste, et qu'est-ce qui l'a tranchée ? »`;
 
 export const prediction = {
