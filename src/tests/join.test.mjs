@@ -137,3 +137,20 @@ test('au join, serveur des évènements en panne : le rattrapage reste dans l’
     await down.close();
   }
 });
+
+test('au join, rattrapage rejeté par le serveur : pas de « remontée(s) », la ligne dit les rejets', async () => {
+  const old = await startFakeEndpoint({ reject: (e) => (e.type === 'step.restored' ? 'unknown_type' : null) });
+  const course = makeCourse({ labs: { a: tinyLab('A') } });
+  try {
+    process.chdir(course.root);
+    writeFileSync(path.join(tmp.dir, 'state.json'), JSON.stringify({ steps: { 'a/s': green } }));
+    const io = captureIo();
+    assert.equal(await main(['join', '--session', 'gql-test', '--email', 'n@x.fr', '--name', 'Nadia', '--endpoint', old.url], io), 0);
+    const text = io.lines.join('\n');
+    assert.doesNotMatch(text, /remontée/);
+    assert.match(text, /1 rejeté\(s\), voir \.othila-lab\/local\/rejected\.jsonl/);
+  } finally {
+    course.cleanup();
+    await old.close();
+  }
+});

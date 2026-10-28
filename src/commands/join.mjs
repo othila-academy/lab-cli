@@ -35,7 +35,8 @@ async function restore(io) {
     const reporter = createReporter({ config });
     for (const event of events) reporter.append(event);
     const flush = await reporter.flush();
-    io.out(flush.offline ? describeFlush(flush, true) : `${events.length} étape(s) déjà faite(s) remontée(s) au formateur`);
+    // Hors ligne ou rejeté (serveur pas encore à jour) : la ligne habituelle du reporter, qui le dit.
+    io.out(flush.offline || flush.rejected > 0 ? describeFlush(flush, true) : `${events.length} étape(s) déjà faite(s) remontée(s) au formateur`);
   } catch {
     // pas de dépôt de cours ici, ou manifeste illisible : rien à rattraper
   }
