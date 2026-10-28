@@ -1,6 +1,6 @@
 import { test, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { browserCommand } from '../browser.mjs';
@@ -10,6 +10,7 @@ import { loadSession } from '../config.mjs';
 import { getJson } from '../http.mjs';
 import { startFakeEndpoint } from '../test-helpers/fake-endpoint.mjs';
 import { captureIo } from '../test-helpers/io.mjs';
+import { makeCourse, tinyLab } from '../test-helpers/course.mjs';
 import { tempLabDir } from '../test-helpers/tmp.mjs';
 
 const pending = { status: 200, body: { status: 'pending' } };
@@ -191,6 +192,24 @@ test('le rappel --terminal reste affiché même quand le navigateur s’ouvre', 
     assert.equal(await run({ positionals: [], flags: { endpoint: endpoint.url }, io, deps }), 0);
     assert.match(io.lines.join('\n'), /npx lab join --terminal/);
   } finally {
+    await endpoint.close();
+  }
+});
+
+test('par le navigateur aussi, le join remonte les étapes déjà faites', async () => {
+  const endpoint = await startFakeEndpoint({ pairing: { polls: [joined] } });
+  const course = makeCourse({ labs: { a: tinyLab('A') } });
+  try {
+    process.chdir(course.root);
+    writeFileSync(path.join(tmp.dir, 'state.json'), JSON.stringify({ steps: { 'a/s': { state: 'vert', passed: 1, total: 1, runs: 1, submitted: false, green: true } } }));
+    const { io, deps } = setup();
+    assert.equal(await run({ positionals: [], flags: { endpoint: endpoint.url }, io, deps }), 0);
+    const events = endpoint.batches.flatMap((b) => b.events);
+    assert.deepEqual(events.map((e) => [e.type, e.session, `${e.lab}/${e.step}`]), [['step.restored', 'GQL-2026-10', 'a/s']]);
+    assert.equal(endpoint.batches[0].authorization, 'Bearer jeton-du-navigateur');
+    assert.match(out(io), /1 étape\(s\) déjà faite\(s\) remontée\(s\)/);
+  } finally {
+    course.cleanup();
     await endpoint.close();
   }
 });

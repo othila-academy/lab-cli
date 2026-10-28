@@ -1,6 +1,8 @@
-import { endpointUrl, ensureGitignore, localDir, saveSession } from '../config.mjs';
+import { endpointUrl, ensureGitignore, formation, loadSession, loadState, localDir, saveSession } from '../config.mjs';
 import { openBrowser } from '../browser.mjs';
 import { getJson, postJson } from '../http.mjs';
+import { createReporter, describeFlush } from '../reporter.mjs';
+import { restoreEvents } from '../restore.mjs';
 
 const value = async (flag, io, prompt) => String(flag ?? (await io.question(prompt))).trim();
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -14,11 +16,29 @@ export async function run({ flags, io, deps = {} }) {
   return joinByBrowser({ io, endpoint, deps });
 }
 
-function welcome(io, endpoint, joined) {
+async function welcome(io, endpoint, joined) {
   saveSession({ endpoint, session: joined.session, learnerId: joined.learnerId, token: joined.token, firstName: joined.firstName });
   if (ensureGitignore()) io.out('.othila-lab/.gitignore : local/ ajouté, ton jeton reste hors de git');
   io.out(`bienvenue ${joined.firstName}, session ${joined.session}. Jeton enregistré dans ${localDir()}.`);
+  await restore(io);
   return 0;
+}
+
+// Le rattrapage (contrat 4.7) : l'état local des étapes déjà travaillées remonte à la session rejointe.
+// Il ne fait jamais échouer le join : hors d'un dépôt de cours, ou sans rien à remonter, il ne dit rien.
+async function restore(io) {
+  let events;
+  try {
+    const config = loadSession();
+    events = await restoreEvents({ config, f: formation(), state: loadState() });
+    if (events.length === 0) return;
+    const reporter = createReporter({ config });
+    for (const event of events) reporter.append(event);
+    const flush = await reporter.flush();
+    io.out(flush.offline ? describeFlush(flush, true) : `${events.length} étape(s) déjà faite(s) remontée(s) au formateur`);
+  } catch {
+    // pas de dépôt de cours ici, ou manifeste illisible : rien à rattraper
+  }
 }
 
 async function joinByTerminal({ flags, io, endpoint }) {
@@ -45,7 +65,7 @@ async function joinByTerminal({ flags, io, endpoint }) {
     io.err(`inscription refusée (HTTP ${res.status})${res.json?.error ? ` : ${res.json.error}` : ''}`);
     return 1;
   }
-  return welcome(io, endpoint, { session, ...res.json });
+  return await welcome(io, endpoint, { session, ...res.json });
 }
 
 async function joinByBrowser({ io, endpoint, deps }) {
@@ -91,7 +111,7 @@ async function joinByBrowser({ io, endpoint, deps }) {
       continue; // réseau intermittent : on réessaie jusqu'à l'expiration
     }
     if (res.status === 200 && res.json?.status === 'pending') continue;
-    if (res.status === 200 && res.json?.status === 'joined') return welcome(io, endpoint, res.json);
+    if (res.status === 200 && res.json?.status === 'joined') return await welcome(io, endpoint, res.json);
     if (res.status >= 500) continue; // serveur ou proxy en difficulté : même traitement qu'une coupure réseau
     if (res.status === 410) {
       // Le serveur dit pourquoi (expirée, déjà utilisée) ; à défaut, c'est le délai.

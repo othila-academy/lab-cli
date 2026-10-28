@@ -79,7 +79,7 @@ Dans `package.json`, un raccourci : `"lab": "lab"`. L'apprenant lance alors `npm
 
 | Commande | Rôle | Code de sortie |
 |---|---|---|
-| `lab join [--terminal]` | rejoindre une session : le navigateur s'ouvre sur un formulaire (code de session, e-mail, prénom) et le terminal attend, en rappelant `npx lab join --terminal` pour un poste sans navigateur ; `--terminal`, ou les options `--session`, `--email`, `--name`, gardent la saisie au terminal | 0, 1 session inconnue, refus ou délai dépassé, 2 endpoint injoignable, 3 champs manquants |
+| `lab join [--terminal]` | rejoindre une session : le navigateur s'ouvre sur un formulaire (code de session, e-mail, prénom) et le terminal attend, en rappelant `npx lab join --terminal` pour un poste sans navigateur ; `--terminal`, ou les options `--session`, `--email`, `--name`, gardent la saisie au terminal. Dans un dépôt de cours, le join remonte ensuite au formateur l'état local des étapes déjà travaillées (`step.restored`) | 0, 1 session inconnue, refus ou délai dépassé, 2 endpoint injoignable, 3 champs manquants |
 | `lab env` | Node, registre npm, endpoint, git, proxy | 0 si les trois premiers passent, 1 sinon |
 | `lab tutoriel [dossier]` | hors de tout cours : crée un dossier (`lab-tutoriel` par défaut) où jouer le tutoriel `prise-en-main` ; ensuite `npm install` puis `npx lab start prise-en-main` ; refusé dans le dépôt d'un cours, où `npx lab start prise-en-main` suffit | 0, 1 dossier existant ou dépôt de cours |
 | `lab init [--branch NOM]` | une fois, au début du cours : crée ta branche (`my-project` par défaut) depuis `base`, y apporte les labs de `main` (comme `lab update`) et les affiche ; refuse un arbre modifié, un `base` introuvable ou une branche existante | 0, 1 refus, 3 usage |
@@ -105,7 +105,7 @@ Hors de tout cours, avant la formation : `npx @othila-academy/lab tutoriel` cré
 
 ## Le parcours d'une étape
 
-Une fois au début du cours : `git clone`, `npm install`, `npx lab join`, `npx lab init`, puis le tutoriel (`npx lab start prise-en-main`). Ensuite, pour chaque lab : `npx lab start <lab>` pour la fiche, et pour chaque étape `lab check` jusqu'au vert, puis `lab submit` : c'est la soumission qui termine l'étape. Après un check tout vert, la commande affiche la soumission à faire ; après une soumission, l'étape suivante, ou à la fin du lab le commit à faire et le catalogue.
+Une fois au début du cours : `git clone`, `npm install`, `npx lab join`, `npx lab init`, puis le tutoriel (`npx lab start prise-en-main`). Un apprenant qui a commencé sans session la rejoint plus tard avec `npx lab join` : ce qu'il a déjà fait sur ce poste (étapes vertes, en échec ou soumises, indices, prédictions, points) remonte alors sur l'écran du formateur. Les explications écrites et l'historique des essais ne remontent pas, la machine ne les garde pas. Ensuite, pour chaque lab : `npx lab start <lab>` pour la fiche, et pour chaque étape `lab check` jusqu'au vert, puis `lab submit` : c'est la soumission qui termine l'étape. Après un check tout vert, la commande affiche la soumission à faire ; après une soumission, l'étape suivante, ou à la fin du lab le commit à faire et le catalogue.
 
 Les labs s'enchaînent sur ton code : le lab suivant part de là où tu as fini le précédent. Quand le formateur publie de nouveaux labs, `npx lab update`. Si tu es trop loin du départ d'un lab (absence, projet bloqué), `npx lab catchup <lab>` te donne une branche sur son départ de référence ; ta branche reste là.
 

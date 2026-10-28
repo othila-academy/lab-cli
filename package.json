@@ -1,6 +1,6 @@
 {
   "name": "@othila-academy/lab",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "description": "Commande lab d'othila-lab : checks en local contre votre serveur, remontée au formateur, indices, rejeu.",
   "repository": {
     "type": "git",

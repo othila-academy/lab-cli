@@ -60,6 +60,14 @@ export function createReporter({ config = loadSession(), dir = localDir(), enabl
       return event;
     },
 
+    // Un évènement déjà construit (le rattrapage du join) : même outbox, même envoi.
+    append(event) {
+      if (!active) return null;
+      mkdirSync(dir, { recursive: true });
+      appendFileSync(outbox, `${JSON.stringify(event)}\n`);
+      return event;
+    },
+
     async flush({ timeoutMs = 3000 } = {}) {
       if (!active) return { sent: 0, rejected: 0, pending: 0, offline: false };
       let pending = readOutbox(outbox, rejectedFile);
