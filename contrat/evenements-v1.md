@@ -6,7 +6,7 @@
 
 ## 1. Principes
 
-1. Un évènement est un **fait** daté, jamais un état. Les états (`en échec`, `vert`, `bloqué`…) sont dérivés par le serveur et ne circulent pas.
+1. Un évènement est un **fait** daté, jamais un état. Les états (`en échec`, `vert`, `bloqué`…) sont dérivés par le serveur et ne circulent pas. Seule exception, assumée : `step.restored` (section 4.7), qui rapporte l'état local d'une étape travaillée hors session.
 2. Un évènement est **immuable** et identifié par un UUID v4 produit par le producteur. Le serveur ignore silencieusement un id déjà reçu : renvoyer un lot est toujours sûr.
 3. L'identité est l'**identifiant apprenant émis par le serveur**. L'e-mail ne figure dans aucun évènement.
 4. Un évènement invalide est **rejeté individuellement**, avec un motif, sans bloquer le reste du lot.
@@ -26,7 +26,7 @@
 |---|---|---|
 | `schema` | string | exactement `othila-lab/1` |
 | `id` | string | UUID v4, unique par évènement, clé d'idempotence |
-| `type` | string | un des six types de la section 4 |
+| `type` | string | un des sept types de la section 4 |
 | `session` | string | code de session, `^[A-Z0-9][A-Z0-9-]{2,31}$` |
 | `learner` | string | identifiant apprenant émis par le serveur, UUID |
 | `lab` | string ou null | slug `^[a-z0-9][a-z0-9-]{0,63}$` ; `null` pour `session.joined` et `env.checked`, obligatoire pour les autres types |
@@ -109,6 +109,25 @@ Quand : à chaque `lab submit`, que les checks soient verts ou non.
 
 L'état du check au moment de la soumission est dérivé par le serveur, pas envoyé.
 
+### 4.7 `step.restored`
+
+Quand : à chaque `lab join` réussi, une fois par étape ayant une trace dans l'état local de la machine (un check lancé, un indice révélé ou une prédiction donnée), pour les labs du catalogue de la formation, labs intégrés compris. Les évènements partent dans l'ordre du catalogue, à `at` strictement croissants.
+
+C'est l'exception au principe 1 : l'évènement ne rapporte pas un fait mais l'état d'une étape travaillée avant de rejoindre la session, sans session, donc sans évènement. Décision et conséquences : ADR-0006 du dépôt othila-lab.
+
+| Champ | Type | Règle |
+|---|---|---|
+| `state` | string | `vert`, `en-echec` ou `aucun` (l'étape n'a qu'un indice ou une prédiction) |
+| `passed` | integer | ≥ 0, checks passés au dernier run local |
+| `total` | integer | ≥ 0, checks de l'étape |
+| `runs` | integer | ≥ 0, checks lancés localement |
+| `submitted` | boolean | étape soumise localement |
+| `hintLevel` | integer | 0 à 3, niveau d'indice le plus haut révélé |
+| `acquiredHintLevel` | integer ou null | 0 à 3, niveau d'indice figé à l'acquisition des points ; `null` si l'étape n'est pas acquise |
+| `prediction` | object ou null | `{ promptId, answer, correct }`, mêmes règles qu'en 4.5 ; `null` sans prédiction |
+
+Règle : le serveur **ignore** un `step.restored` sur une étape qui a déjà un évènement pour cet apprenant. Le direct prime, et rejoindre deux fois ne change rien.
+
 ## 5. Validation et ordre
 
 - Le serveur enregistre dans l'ordre d'arrivée. La dérivation trie par `effectiveAt = min(at, receivedAt)`, puis par `receivedAt`. Un `at` dans le futur est ainsi ramené à l'heure de réception, pas rejeté.
@@ -146,6 +165,8 @@ Cette section décrit ce que le serveur calcule à partir des évènements. Elle
 
 **Environnement.** Le dernier `env.checked` de l'apprenant : `ok` si tous les checks le sont, sinon la liste des ids en échec.
 
+**Étape rattrapée (0.13.0).** Un `step.restored` appliqué donne à l'étape l'état rapporté : vert, en échec avec `passed / total`, ou une activité sans check pour `aucun`. `submitted` la rend `soumis`, avec l'état rapporté, sans entrée dans les explications. `hintLevel` compte comme des indices révélés, seuil de blocage compris, et `acquiredHintLevel` fixe les points. Son `at` sert de premier évènement, de dernier progrès, de dernier run et, pour une étape verte, de premier vert : une étape rattrapée en échec devient bloquée au bout de `minutesWithoutProgress` après le `join`. L'étape courante devient la dernière étape rattrapée, donc la plus avancée dans le catalogue. Une étape rattrapée en échec ne connaît pas ses checks en échec : elle n'alimente pas le signal collectif tant qu'un `check.completed` ne l'a pas remplacée. Dans l'export, la durée jusqu'au vert reste vide quand le vert vient du rattrapage.
+
 **Points (0.6.0).** Une étape est acquise à la première `answer.submitted` dont le dernier `check.completed` précédent n'a aucun échec ; ses points valent la valeur de l'étape au catalogue (100 par défaut) diminuée de 10, 25 ou 50 % selon le plus haut `hint.revealed.level` antérieur, arrondis à l'entier inférieur. Règle et exemples : [`points/regle.md`](../points/regle.md), [`points/exemples.json`](../points/exemples.json). Aucun changement normatif.
 
 ## 7. Évolution
@@ -157,6 +178,7 @@ Cette section décrit ce que le serveur calcule à partir des évènements. Elle
 
 ## 8. Historique
 
+- **28 octobre 2026, version 0.13.0 du paquet.** Section 4.7 : nouveau type `step.restored`, envoyé au `lab join` ; section 1 : son exception au principe 1 ; section 6 : l'étape rattrapée. Un serveur antérieur le rejette en `unknown_type` sans fausser le tableau, la version reste donc `othila-lab/1` (section 7).
 - **10 octobre 2026.** Le contrat et ses exemples rejoignent le dépôt public `othila-academy/lab-cli` et sont publiés dans le paquet `@othila-academy/lab` (0.7.0). Aucun changement de format ; la version reste `othila-lab/1`.
 - **7 octobre 2026, version 0.6.0 du paquet.** Section 6 : dérivation des points (informative). Aucun changement de format ; la version reste `othila-lab/1`.
 - **7 octobre 2026, console de sessions.** Section 3 : nouveau motif de rejet `session_closed` et règle de la session clôturée. Ajout d'un motif, la version reste `othila-lab/1` (section 7).

@@ -1,0 +1,21 @@
+{
+  "schema": "othila-lab/1",
+  "id": "8a9b0c1d-2e3f-4a5b-8c6d-7e8f9a0b1c2d",
+  "type": "step.restored",
+  "session": "GQL-2026-10",
+  "learner": "b7e2a1c4-5d6f-4a8b-9c0d-1e2f3a4b5c6d",
+  "lab": "n1",
+  "step": "observe",
+  "at": "2026-10-13T09:00:00.000+02:00",
+  "source": "reporter",
+  "payload": {
+    "state": "vert",
+    "passed": 3,
+    "total": 3,
+    "runs": 4,
+    "submitted": true,
+    "hintLevel": 1,
+    "acquiredHintLevel": 1,
+    "prediction": { "promptId": "repo-calls-for-10-events", "answer": "1", "correct": true }
+  }
+}

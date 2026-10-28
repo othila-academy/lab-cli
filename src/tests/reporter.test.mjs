@@ -24,9 +24,10 @@ beforeEach(() => {
 });
 afterEach(() => tmp.cleanup());
 
-test("les fixtures sont les sept exemples du contrat, à l'identique", () => {
+test("les fixtures sont les huit exemples du contrat, à l'identique", () => {
   const names = readdirSync(fixtures).filter((f) => f.endsWith('.json')).sort();
-  assert.equal(names.length, 7);
+  assert.equal(names.length, 8);
+  assert.ok(names.includes('step.restored.json'), 'step.restored est un exemple du contrat');
   for (const name of names) assert.equal(readFileSync(path.join(fixtures, name), 'utf8'), readFileSync(path.join(canonical, name), 'utf8'), name);
 });
 
